@@ -5,6 +5,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user, UserMixin
 from flask_migrate import Migrate
 from datetime import datetime, timedelta
+from flask import Blueprint, render_template
 import calendar
 
 # --- Configuração da aplicação ---
@@ -79,6 +80,14 @@ def gerar_semanas(mes_num, ano):
 
 # Alias para compatibilidade
 obter_semanas_do_mes = gerar_semanas
+
+fixacao_bp = Blueprint(
+    'fixacao',
+    __name__,
+    template_folder='templates/fixacao',
+    static_folder='static/fixacao',
+    static_url_path='/fixacao/static'
+)
 
 # --- Flask-Login user loader ---
 @login_manager.user_loader
@@ -164,6 +173,15 @@ def acompanhamento_anual():
         grafico_anos   = grafico_anos,
         meses          = meses,
         campos         = campos
+    )
+    
+    @fixacao_bp.route('/painel')
+def painel_gerente():
+    return render_template(
+        'painel_gerente.html',
+        sector_name='Subgerência de Fixação',
+        brand_color='#00437A',      # escolha sua cor
+        brand_logo_url='/fixacao/static/img/logo_fixacao.png'
     )
 
 @app.route('/acompanhamento-analista')
