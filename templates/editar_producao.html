@@ -1,0 +1,37 @@
+<!-- editar_producao.html -->
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Editar Produção</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 p-6">
+    <div class="max-w-2xl mx-auto bg-white p-6 rounded shadow">
+        <h2 class="text-2xl font-bold mb-4">Editar Produção</h2>
+
+        <form method="post">
+            <div class="mb-4">
+                <label class="block text-gray-700">Nº do Processo</label>
+                <input type="text" name="numero_processo" value="{{ producao.numero_processo or '' }}" class="w-full px-3 py-2 border rounded">
+            </div>
+            <div class="mb-4">
+                <label class="block text-gray-700">Requerente</label>
+                <input type="text" name="requerente" value="{{ producao.requerente or '' }}" class="w-full px-3 py-2 border rounded">
+            </div>
+            <div class="mb-4">
+                <label class="block text-gray-700">Fase</label>
+                <select name="fase" class="w-full px-3 py-2 border rounded">
+                    <option value="">Selecione</option>
+                    <option value="Análise" {% if producao.fase == 'Análise' %}selected{% endif %}>Análise</option>
+                    <option value="Conferência" {% if producao.fase == 'Conferência' %}selected{% endif %}>Conferência</option>
+                </select>
+            </div>
+            <div class="flex justify-between">
+                <a href="{{ url_for('painel_gerente') }}" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">Voltar</a>
+                <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Salvar</button>
+            </div>
+        </form>
+    </div>
+</body>
+</html>
