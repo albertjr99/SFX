@@ -2,11 +2,11 @@ from app import app, db, Usuario
 from werkzeug.security import generate_password_hash
 
 usuarios = [
-    {"nome": "Caio", "email": "caio@stc.com", "tipo": "subgerente"},
-    {"nome": "Daniella", "email": "daniella@stc.com", "tipo": "gerente"},
-    {"nome": "Anapaula", "email": "anapaula@stc.com", "tipo": "diretora"},
-    {"nome": "Kethlen", "email": "kethlen@stc.com", "tipo": "estagiaria"},
-    {"nome": "Anna Clara", "email": "annaclara@stc.com", "tipo": "estagiaria"}
+    {"nome": "Doris",     "email": "doris@stc.com",     "tipo": "subgerente"},
+    {"nome": "Daniella",  "email": "daniella@stc.com",  "tipo": "gerente"},
+    {"nome": "Anapaula",  "email": "anapaula@stc.com",  "tipo": "diretora"},
+    {"nome": "Gabriela",  "email": "gabriela@stc.com",  "tipo": "estagiaria"},
+    {"nome": "Andressa",  "email": "andressa@stc.com",  "tipo": "estagiaria"},
 ]
 
 with app.app_context():
@@ -24,4 +24,3 @@ with app.app_context():
     db.session.commit()
 
 print("✅ Usuários administrativos criados com sucesso.")
-
