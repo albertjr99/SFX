@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% block title %}Pendências – {{ current_user.nome }}{% endblock %}
+
+{% block content %}
+<div class="p-6">
+  <h1 class="text-2xl font-bold mb-4">Pendências de {{ current_user.nome }}</h1>
+
+  {% if procs %}
+    <div class="overflow-x-auto">
+      <table class="min-w-full table-auto text-sm border-collapse">
+        <thead class="bg-red-600 text-white">
+          <tr>
+            <th class="border px-2 py-1">Mês</th>
+            <th class="border px-2 py-1">Semana</th>
+            <th class="border px-2 py-1">LINHA</th>
+            <th class="border px-2 py-1">Nº Processo</th>
+            <th class="border px-2 py-1">Nome do Segurado</th>
+            <th class="border px-2 py-1">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in procs %}
+          <tr class="even:bg-gray-50">
+            <td class="border px-2 py-1">{{ p.mes }}</td>
+            <td class="border px-2 py-1">{{ p.semana }}</td>
+            <td class="border px-2 py-1 text-center">{{ p.indice_linha }}</td>
+            <td class="border px-2 py-1">{{ p.numero_processo }}</td>
+            <td class="border px-2 py-1">{{ p.requerente }}</td>
+            <td class="border px-2 py-1">
+              <span class="px-2 py-0.5 rounded 
+                {% if p.status=='tramitado' %}bg-yellow-300 text-gray-800{% endif %}
+                {% if p.status=='aguardando' %}bg-gray-200 text-gray-800{% endif %}
+                {% if p.status=='acompanhar' %}bg-pink-300 text-white{% endif %}">
+                {{ labels[p.status] }}
+              </span>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p>Nenhuma pendência encontrada.</p>
+  {% endif %}
+
+  <div class="mt-6">
+    <a href="{{ url_for('registrar_producao') }}"
+       class="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700">
+      Voltar
+    </a>
+  </div>
+</div>
+{% endblock %}

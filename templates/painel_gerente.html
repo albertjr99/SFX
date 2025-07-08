@@ -1,0 +1,164 @@
+{# templates/painel_gerente.html #}
+{% extends 'base.html' %}
+{% block content %}
+<div class="p-6">
+  <h1 class="text-2xl font-bold mb-4">Painel dos Gestores</h1>
+
+  <!-- 1) Botões de estatísticas -->
+  <div class="flex flex-wrap gap-4 mb-16">
+    <a href="{{ url_for('acompanhamento_anual') }}"
+       class="bg-purple-600 text-white px-4 py-2 rounded">
+      Ver Estatísticas de todo setor
+    </a>
+    {% if usuario_selecionado %}
+      <a href="{{ url_for('acompanhamento_analista',
+                          analista_id=usuario_selecionado.id,
+                          mes=mes) }}"
+         class="bg-indigo-600 text-white px-4 py-2 rounded">
+        Ver Estatísticas de {{ usuario_selecionado.nome }}
+      </a>
+    {% endif %}
+  </div>
+
+  <!-- 2) Filtro de analista e mês -->
+  <form method="get" class="mb-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+    <div>
+      <label class="block font-semibold mb-1">Selecione um Analista:</label>
+      <select name="analista_id" class="border rounded p-2 w-full">
+        <optgroup label="Presencial">
+          {% for a in analistas_presencial %}
+            <option value="{{ a.id }}"
+              {% if usuario_selecionado and a.id == usuario_selecionado.id %}selected{% endif %}>
+              {{ a.nome }}
+            </option>
+          {% endfor %}
+        </optgroup>
+        <optgroup label="Teletrabalho">
+          {% for a in analistas_teletrabalho %}
+            <option value="{{ a.id }}"
+              {% if usuario_selecionado and a.id == usuario_selecionado.id %}selected{% endif %}>
+              {{ a.nome }}
+            </option>
+          {% endfor %}
+        </optgroup>
+      </select>
+    </div>
+    <div>
+      <label class="block font-semibold mb-1">Mês:</label>
+      <select name="mes" class="border rounded p-2 w-full">
+        {% for m in meses %}
+          <option value="{{ m }}" {% if m == mes %}selected{% endif %}>{{ m }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="md:col-span-2 flex items-end">
+      <button type="submit"
+              class="bg-blue-600 text-white px-4 py-2 rounded w-full">
+        Visualizar Produção
+      </button>
+    </div>
+  </form>
+
+  {% if usuario_selecionado %}
+    <!-- 3) Título da Produção -->
+    <div class="bg-blue-200 text-blue-900 px-4 py-2 rounded mb-4">
+      <h2 class="text-xl font-semibold">
+        Produção de {{ usuario_selecionado.nome }} – {{ mes }}
+      </h2>
+    </div>
+
+    {% if alertas %}
+      <div class="bg-yellow-200 border-l-4 border-yellow-500 text-yellow-800 p-4 mb-6">
+        <strong>Atenção:</strong>
+        {% for semana, msg in alertas.items() %}
+          <div>{{ semana }}: {{ msg }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <!-- 4) Meta mensal e progresso -->
+    <div class="mb-6">
+      <div class="bg-gray-200 w-full h-4 rounded">
+        <div class="bg-green-500 h-4 rounded" style="width: {{ percentual_meta }}%"></div>
+      </div>
+      <p>{{ total_feito }} de {{ meta }} processos ({{ percentual_meta }}%)</p>
+    </div>
+
+    <!-- 5) Edição detalhada por semana -->
+    <form method="post"
+          action="{{ url_for('painel_gerente',
+                              analista_id=usuario_selecionado.id,
+                              mes=mes) }}">
+      {% for semana in semanas %}
+        <div class="mb-6">
+          <div class="bg-blue-200 text-blue-900 px-3 py-2 rounded mb-2">
+            <h3 class="font-semibold">Semana: {{ semana }}</h3>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="min-w-full table-auto border text-sm">
+              <!-- Cabeçalho -->
+              <thead class="bg-blue-600 text-white">
+                <tr>
+                  <th class="border px-2">ITEM</th>
+                  <th class="border px-2">Nº PROCESSO</th>
+                  <th class="border px-2">Requerente</th>
+                  <th class="border px-2">Fase</th>
+                  {% for campo in campos %}
+                    <th class="border px-2">{{ campo.replace('_',' ')|title }}</th>
+                  {% endfor %}
+                  <th class="border px-2">Observação</th>
+                </tr>
+              </thead>
+              <!-- Corpo -->
+              <tbody>
+                {% for i in range(linhas) %}
+                  {% set p = processos_info[semana][i] %}
+                  <tr class="even:bg-gray-50">
+                    <td class="border px-2 text-center">{{ i+1 }}</td>
+                    <td class="border px-2">
+                      <input type="text"
+                             name="{{ semana }}_{{ i }}_numero_processo"
+                             value="{{ p.numero_processo or '' }}"
+                             class="w-full border p-1">
+                    </td>
+                    <td class="border px-2">
+                      <input type="text"
+                             name="{{ semana }}_{{ i }}_requerente"
+                             value="{{ p.requerente or '' }}"
+                             class="w-full border p-1">
+                    </td>
+                    <td class="border px-2">
+                      <input type="text"
+                             name="{{ semana }}_{{ i }}_fase"
+                             value="{{ p.fase or '' }}"
+                             class="w-full border p-1">
+                    </td>
+                    {% for campo in campos %}
+                      <td class="border px-2 text-center">
+                        <input type="checkbox"
+                               name="{{ semana }}_{{ i }}_{{ campo }}"
+                               {% if p and (p|getattr(campo)) %}checked{% endif %}>
+                      </td>
+                    {% endfor %}
+                    <td class="border px-2">
+                      <textarea name="{{ semana }}_{{ i }}_obs"
+                                class="w-full border p-1 rounded resize-none"
+                                rows="2">{{ p.observacao or '' }}</textarea>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          <div class="mt-4 text-right">
+            <button type="submit"
+                    class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+              Salvar Produção
+            </button>
+          </div>
+        </div>
+      {% endfor %}
+    </form>
+  {% endif %}
+</div>
+{% endblock %}

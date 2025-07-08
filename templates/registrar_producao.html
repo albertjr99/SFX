@@ -1,0 +1,336 @@
+{# templates/registrar_producao.html #}
+{% extends 'base.html' %}
+{% block title %}Registrar Produção – {{ usuario.nome }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+  <!-- HEADER E CONTROLES (não imprime) -->
+  <div class="flex justify-between items-center nao-imprimir">
+    <div>
+      <h1 class="text-2xl font-bold">Registrar Produção – {{ usuario.nome }}</h1>
+      <div class="flex items-center space-x-2 mt-1">
+        <a href="{{ url_for('registrar_producao', mes=mes_anterior) }}"
+           class="text-blue-600 hover:underline">← {{ mes_anterior }}</a>
+        <span class="font-semibold">{{ mes_atual }}</span>
+        <a href="{{ url_for('registrar_producao', mes=mes_posterior) }}"
+           class="text-blue-600 hover:underline">{{ mes_posterior }} →</a>
+      </div>
+    </div>
+    <div class="flex flex-col items-end space-y-2">
+      <div class="flex space-x-2">
+        <a href="{{ url_for('acompanhamento_pessoal') }}"
+           class="px-3 py-1 bg-indigo-600 text-white rounded hover:bg-indigo-700">
+          Estatísticas da Minha Produção
+        </a>
+        <a href="{{ url_for('pendencias') }}"
+         class="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700">
+        Pendências
+      </a>
+        <form method="post" class="inline-block">
+          <button type="submit"
+                  class="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700">
+            Salvar Produção
+          </button>
+        </form>
+      </div>
+      {% if current_user.nome|lower == 'lucas' %}
+      <button onclick="location.href='{{ url_for('plano_acao') }}'"
+              class="px-3 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600 nao-imprimir">
+        Acompanhamento do Plano de Ação
+      </button>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- LEGENDA DE STATUS (não imprime) -->
+  <div class="nao-imprimir bg-white border rounded p-4 shadow mb-6">
+    <h2 class="font-semibold mb-2">Legenda de Status</h2>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+      <!-- Finalizado -->
+      <div class="flex items-center space-x-2">
+        <span class="inline-flex items-center justify-center w-6 h-6 bg-blue-500 text-white font-bold rounded">
+          X
+        </span>
+        <span>Finalizado</span>
+      </div>
+      <!-- Tramitado - aguardando -->
+      <div class="flex items-center space-x-2">
+        <span class="inline-flex items-center justify-center w-6 h-6 bg-yellow-300 text-gray-800 font-bold rounded">
+          &raquo;&raquo;
+        </span>
+        <span>Tramitado – aguardando</span>
+      </div>
+      <!-- Aguardando orientação Chefe -->
+      <div class="flex items-center space-x-2">
+        <span class="inline-flex items-center justify-center w-6 h-6 bg-gray-200 text-gray-800 font-bold rounded">
+          ?
+        </span>
+        <span>Aguardando orientação Chefe</span>
+      </div>
+      <!-- Acompanhar mesmo após envio -->
+      <div class="flex items-center space-x-2">
+        <span class="inline-flex items-center justify-center w-6 h-6 bg-pink-300 text-white font-bold rounded">
+          !
+        </span>
+        <span>Acompanhar mesmo após envio para garantir revisão/finalização de alguma pendência</span>
+      </div>
+      <!-- Conferido e encaminhado -->
+      <div class="flex items-center space-x-2">
+        <span class="inline-flex items-center justify-center w-6 h-6 bg-green-300 text-white font-bold rounded">
+          X
+        </span>
+        <span>Conferido e encaminhado para Subgerente dar prosseguimento</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- BUSCA GLOBAL (não imprime) -->
+  <div class="nao-imprimir mb-6">
+    <div class="flex items-center max-w-md mx-auto">
+      <!-- Campo de texto -->
+      <input
+        id="searchInput"
+        type="text"
+        placeholder="🔍 Buscar nº processo ou nome do segurado..."
+        class="flex-1 px-4 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring focus:border-blue-300"
+      />
+      <!-- Botão de busca -->
+      <button
+        id="btnSearch"
+        class="px-4 py-2 bg-blue-600 text-white font-medium rounded-r-md hover:bg-blue-700 focus:outline-none focus:ring"
+      >
+        🔍
+      </button>
+    </div>
+    <!-- Resultado da busca -->
+    <div id="searchResults" class="mt-2 text-sm text-gray-700"></div>
+  </div>
+
+  <!-- FORMULÁRIO DE CONTROLES (não imprime) -->
+  <form method="post" class="nao-imprimir">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+      <!-- Meta Mensal -->
+      <div class="bg-white rounded-lg shadow p-4">
+        <h2 class="font-semibold mb-2">Meta Mensal</h2>
+        <div class="w-full bg-gray-200 rounded h-3 mb-2">
+          <div class="h-3 bg-green-500 rounded"
+               style="width: {{ percentual_meta }}%"></div>
+        </div>
+        <p class="text-sm">{{ total_feito }} de {{ meta }} processos</p>
+      </div>
+      <!-- você pode adicionar mais cards aqui se quiser -->
+    </div>
+
+    <!-- Seletor de semanas para impressão -->
+    <div class="mb-4">
+      <p class="font-semibold mb-2">Selecionar semanas para impressão:</p>
+      <div class="flex flex-wrap gap-2">
+        {% for semana in semanas %}
+        <label class="inline-flex items-center">
+          <input type="checkbox" class="semana-selector" value="{{ semana }}" checked>
+          <span class="ml-2">{{ semana }}</span>
+        </label>
+        {% endfor %}
+      </div>
+      <button type="button"
+              onclick="imprimirSelecionadas()"
+              class="mt-3 px-4 py-2 bg-gray-700 text-white rounded hover:bg-gray-800">
+        Imprimir Selecionadas
+      </button>
+    </div>
+  </form>
+
+  <!-- CONTEÚDO A SER IMPRESSO E EDITADO -->
+  <form method="post">
+    <div class="impressao-container">
+      {% for semana in semanas %}
+      <div class="mb-6 semana-impressao" data-semana="{{ semana }}">
+        <h2 class="text-xl font-semibold mb-2">Semana: {{ semana }}</h2>
+        <div class="overflow-x-auto">
+          <table class="min-w-full border-collapse text-sm">
+            <thead class="bg-blue-600 text-white">
+              <tr>
+                <th class="border px-2 py-1">LINHA</th>
+                <th class="border px-2 py-1">ITEM</th>
+                <th class="border px-2 py-1">Nº PROCESSO</th>
+                <th class="border px-2 py-1">NOME DO SEGURADO</th>
+                <th class="border px-2 py-1">HOMOLOGAÇÃO</th>
+                <th class="border px-2 py-1">FIXAÇÃO CIVIL</th>
+                <th class="border px-2 py-1">IN</th>
+                <th class="border px-2 py-1">CONF. CIVIL</th>
+                <th class="border px-2 py-1">REGISTRO CIVIL</th>
+                <th class="border px-2 py-1">FIXAÇÃO PENSÃO</th>
+                <th class="border px-2 py-1">CONF. PENSÃO</th>
+                <th class="border px-2 py-1">DILIGÊNCIA</th>
+                <th class="border px-2 py-1">OUTROS</th>
+                <th class="border px-2 py-1">SETOR</th>
+                <th class="border px-2 py-1">OBSERVAÇÕES</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for i in range(linhas) %}
+              {% set p = processos_info[semana][i] %}
+              <tr class="even:bg-gray-100">
+                <td class="border px-2 py-1 text-center">{{ i+1 }}</td>
+
+                {# ITEM agora é um select de status colorido #}
+                <td class="border px-2 py-1 text-center">
+                  <select name="{{ semana }}_{{ i }}_status"
+                          class="w-full border rounded p-1 cursor-pointer"
+                          onchange="this.className='w-full border rounded p-1 cursor-pointer '+
+                            {'finalizado':'bg-blue-500 text-white',
+                             'tramitado':'bg-yellow-300 text-gray-800',
+                             'aguardando':'bg-gray-200 text-gray-800',
+                             'acompanhar':'bg-pink-300 text-white',
+                             'conferido':'bg-green-300 text-white'}[this.value]||''">
+                    <option value="">—</option>
+                    <option value="finalizado" {% if p and p.status=='finalizado' %}selected{% endif %}>
+                      X Finalizado
+                    </option>
+                    <option value="tramitado" {% if p and p.status=='tramitado' %}selected{% endif %}>
+                      »» Tramitado – aguardando
+                    </option>
+                    <option value="aguardando" {% if p and p.status=='aguardando' %}selected{% endif %}>
+                      ? Aguardando orientação Chefe
+                    </option>
+                    <option value="acompanhar" {% if p and p.status=='acompanhar' %}selected{% endif %}>
+                      ! Acompanhar mesmo após envio
+                    </option>
+                    <option value="conferido" {% if p and p.status=='conferido' %}selected{% endif %}>
+                      X Conferido e encaminhado
+                    </option>
+                  </select>
+                </td>
+
+                <td class="border px-2 py-1">
+                  <input type="text"
+                         name="{{ semana }}_{{ i }}_numero_processo"
+                         value="{{ p.numero_processo or '' }}"
+                         class="w-full border p-1">
+                </td>
+                <td class="border px-2 py-1">
+                  <input type="text"
+                         name="{{ semana }}_{{ i }}_requerente"
+                         value="{{ p.requerente or '' }}"
+                         class="w-full border p-1">
+                </td>
+                <td class="border px-2 py-1 text-center">
+                  <input type="checkbox"
+                         name="{{ semana }}_{{ i }}_averbacao"
+                         {% if p and p.averbacao %}checked{% endif %}>
+                </td>
+                <td class="border px-2 py-1 text-center">
+                  <input type="checkbox"
+                         name="{{ semana }}_{{ i }}_desaverbacao"
+                         {% if p and p.desaverbacao %}checked{% endif %}>
+                </td>
+                <td class="border px-2 py-1 text-center">
+                  <input type="checkbox"
+                         name="{{ semana }}_{{ i }}_conf_av_desav"
+                         {% if p and p.conf_av_desav %}checked{% endif %}>
+                </td>
+                <td class="border px-2 py-1 text-center">
+                  <input type="checkbox"
+                         name="{{ semana }}_{{ i }}_ctc"
+                         {% if p and p.ctc %}checked{% endif %}>
+                </td>
+                <td class="border px-2 py-1 text-center">
+                  <input type="checkbox"
+                         name="{{ semana }}_{{ i }}_conf_ctc"
+                         {% if p and p.conf_ctc %}checked{% endif %}>
+                </td>
+                <td class="border px-2 py-1 text-center">
+                  <input type="checkbox"
+                         name="{{ semana }}_{{ i }}_dtc"
+                         {% if p and p.dtc %}checked{% endif %}>
+                </td>
+                <td class="border px-2 py-1 text-center">
+                  <input type="checkbox"
+                         name="{{ semana }}_{{ i }}_conf_dtc"
+                         {% if p and p.conf_dtc %}checked{% endif %}>
+                </td>
+                <td class="border px-2 py-1 text-center">
+                  <input type="checkbox"
+                         name="{{ semana }}_{{ i }}_in_68"
+                         {% if p and p.in_68 %}checked{% endif %}>
+                </td>
+                <td class="border px-2 py-1 text-center">
+                  <input type="checkbox"
+                         name="{{ semana }}_{{ i }}_dpor"
+                         {% if p and p.dpor %}checked{% endif %}>
+                </td>
+                <td class="border px-2 py-1">
+                  <input type="text"
+                         name="{{ semana }}_{{ i }}_setor"
+                         value="{{ p.setor or '' }}"
+                         class="w-full border p-1">
+                </td>
+                <td class="border px-2 py-1">  
+                  <input type="text"
+                         name="{{ semana }}_{{ i }}_obs"
+                         value="{{ p.observacao or '' }}"
+                         class="w-full border p-1">
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <div class="text-right nao-imprimir mt-2">
+          <button type="submit"
+                  class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+            Salvar Produção
+          </button>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </form>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function toggleFullScreen() {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen();
+    } else {
+      document.exitFullscreen();
+    }
+  }
+  document.querySelectorAll('.semana-selector').forEach(cb =>
+    cb.addEventListener('change', () => {
+      const div = document.querySelector(`.semana-impressao[data-semana="${cb.value}"]`);
+      div.style.display = cb.checked ? 'block' : 'none';
+    })
+  );
+  function imprimirSelecionadas() {
+    document.querySelectorAll('.semana-selector').forEach(cb => {
+      const div = document.querySelector(`.semana-impressao[data-semana="${cb.value}"]`);
+      div.style.display = cb.checked ? 'block' : 'none';
+    });
+    window.print();
+    document.querySelectorAll('.semana-impressao').forEach(div => div.style.display = 'block');
+  }
+
+  // BUSCA GLOBAL
+  document.getElementById('btnSearch').addEventListener('click', async () => {
+    const q = document.getElementById('searchInput').value.trim();
+    if (!q) return;
+    const resp = await fetch(`{{ url_for('buscar_producao') }}?q=${encodeURIComponent(q)}`);
+    const { resultados } = await resp.json();
+    const div = document.getElementById('searchResults');
+    if (resultados.length) {
+      div.innerHTML = resultados
+        .map(r =>
+          `Encontrado: <strong>${r.numero_processo}</strong> (${r.requerente}) — mês <em>${r.mes}</em>, semana <em>${r.semana}</em>`
+        )
+        .join('<br>');
+    } else {
+      div.textContent = `Nenhum resultado para "${q}"`;
+    }
+  });
+</script>
+{% endblock %}

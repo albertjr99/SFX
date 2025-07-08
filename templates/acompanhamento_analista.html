@@ -1,0 +1,137 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="p-6 space-y-6">
+
+  <style>
+    @media print {
+      /* Esconde tudo */
+      body * { visibility: hidden; }
+      /* Revela apenas o container de impressão */
+      .print-container, .print-container * { visibility: visible; }
+      .print-container {
+        position: absolute;
+        top: 0; left: 0;
+        width: 100%;
+      }
+      /* Também esconde o botão de imprimir que fica dentro de nao-imprimir */
+      .nao-imprimir { display: none !important; }
+    }
+  </style>
+
+  <div class="flex justify-between items-center mb-4 nao-imprimir">
+    <h1 class="text-2xl font-bold">
+      Acompanhamento de {{ analista.nome if analista else '' }} – {{ mes }}
+    </h1>
+    <div class="flex gap-2">
+      <a href="{{ url_for('painel_gerente') }}"
+         class="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700">
+        ← Voltar
+      </a>
+      <button onclick="window.print()"
+              class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 nao-imprimir">
+        Imprimir
+      </button>
+    </div>
+  </div>
+
+  <!-- filtros (não impressos) -->
+  <form method="get" class="flex flex-wrap gap-4 items-end nao-imprimir">
+    <input type="hidden" name="analista_id" value="{{ analista.id if analista else '' }}">
+    <div>
+      <label class="block font-semibold mb-1">Visão</label>
+      <select name="view" class="border rounded px-2 py-1">
+        <option value="semana" {% if view=='semana' %}selected{% endif %}>Semana</option>
+        <option value="mes"    {% if view=='mes'    %}selected{% endif %}>Mês</option>
+        <option value="ano"    {% if view=='ano'    %}selected{% endif %}>Ano</option>
+      </select>
+    </div>
+    <div>
+      <label class="block font-semibold mb-1">Mês</label>
+      <select name="mes"
+              class="border rounded px-2 py-1"
+              {% if view=='ano' %}disabled{% endif %}>
+        {% for m in meses %}
+          <option value="{{ m }}" {% if m==mes %}selected{% endif %}>{{ m }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    {% if view=='semana' %}
+      <div>
+        <label class="block font-semibold mb-1">Semana</label>
+        <select name="semana" class="border rounded px-2 py-1">
+          {% for s in semanas %}
+            <option value="{{ s }}" {% if s==selected_semana %}selected{% endif %}>{{ s }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    {% endif %}
+    <div>
+      <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">
+        Filtrar
+      </button>
+    </div>
+  </form>
+
+  <!-- área que será impressa -->
+  <div class="print-container space-y-6">
+
+    <!-- tabela de contagem -->
+    <div class="overflow-x-auto bg-white rounded shadow">
+      <table class="min-w-full border text-sm">
+        <thead class="bg-blue-600 text-white">
+          <tr>
+            {% for c in campos %}
+              <th class="border px-2 py-1">{{ c.replace('_',' ')|title }}</th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            {% for c in campos %}
+              <td class="border px-2 py-1 text-center">{{ counts[c] }}</td>
+            {% endfor %}
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- gráfico -->
+    <div class="bg-white rounded shadow p-4">
+      <canvas id="chartAnalista"></canvas>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  (function(){
+    const campos    = {{ campos|tojson }};
+    const countsMap = {{ counts|tojson }};
+    const data      = campos.map(c => countsMap[c] || 0);
+    const ctx       = document.getElementById('chartAnalista').getContext('2d');
+
+    new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: campos.map(c => c.replace(/_/g,' ')),
+        datasets: [{
+          label: 'Contagem de Processos',
+          data: data,
+          backgroundColor: 'rgba(54,162,235,0.6)',
+          borderColor: 'rgba(54,162,235,1)',
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true } }
+      }
+    });
+  })();
+</script>
+{% endblock %}
