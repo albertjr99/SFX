@@ -1,0 +1,434 @@
+{% extends 'base.html' %}
+{% block title %}Registrar Produção – {{ usuario.nome }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+  <!-- HEADER E CONTROLES (não imprime) -->
+  <div class="flex justify-between items-center nao-imprimir">
+    <div>
+      <h1 class="text-2xl font-bold">Registrar Produção – {{ usuario.nome }}</h1>
+      <div class="flex items-center space-x-2 mt-1">
+        <a href="{{ url_for('registrar_producao', mes=mes_anterior) }}" class="text-blue-600 hover:underline">← {{ mes_anterior }}</a>
+        <span class="font-semibold">{{ mes_atual }}</span>
+        <a href="{{ url_for('registrar_producao', mes=mes_posterior) }}" class="text-blue-600 hover:underline">{{ mes_posterior }} →</a>
+      </div>
+    </div>
+    <div class="flex flex-col items-end space-y-2">
+      <div class="flex space-x-2">
+        <a href="{{ url_for('acompanhamento_pessoal') }}"
+           class="px-3 py-1 bg-indigo-600 text-white rounded hover:bg-indigo-700">
+          Estatísticas da Minha Produção
+        </a>
+        <a href="{{ url_for('pendencias') }}"
+           class="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700">
+          Pendências
+        </a>
+        <button
+    type="button"
+    onclick="document.getElementById('formProducao').submit()"
+    class="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700">
+  Salvar Produção
+</button>
+
+      </div>
+      {% if current_user.nome|lower == 'lucas' %}
+      <button onclick="location.href='{{ url_for('plano_acao') }}'"
+              class="px-3 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600 nao-imprimir">
+        Acompanhamento do Plano de Ação
+      </button>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- LEGENDA DE STATUS (não imprime) -->
+  <div class="nao-imprimir bg-white border rounded p-4 shadow mb-6">
+    <h2 class="font-semibold mb-2">Legenda de Status</h2>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+      <div class="flex items-center space-x-2">
+        <span class="inline-flex items-center justify-center w-6 h-6 bg-blue-500 text-white font-bold rounded">X</span>
+        <span>Finalizado</span>
+      </div>
+      <div class="flex items-center space-x-2">
+        <span class="inline-flex items-center justify-center w-6 h-6 bg-yellow-300 text-gray-800 font-bold rounded">»»</span>
+        <span>Tramitado – aguardando</span>
+      </div>
+      <div class="flex items-center space-x-2">
+        <span class="inline-flex items-center justify-center w-6 h-6 bg-gray-200 text-gray-800 font-bold rounded">?</span>
+        <span>Aguardando orientação Chefe</span>
+      </div>
+      <div class="flex items-center space-x-2">
+        <span class="inline-flex items-center justify-center w-6 h-6 bg-pink-300 text-white font-bold rounded">!</span>
+        <span>Acompanhar mesmo após envio</span>
+      </div>
+      <div class="flex items-center space-x-2">
+        <span class="inline-flex items-center justify-center w-6 h-6 bg-green-300 text-white font-bold rounded">X</span>
+        <span>Conferido e encaminhado</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- BUSCA GLOBAL (não imprime) -->
+  <div class="nao-imprimir mb-6">
+    <div class="flex items-center max-w-md mx-auto">
+      <input id="searchInput" type="text" placeholder="🔍 Buscar nº processo ou nome do segurado..."
+             class="flex-1 px-4 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring focus:border-blue-300" />
+      <button id="btnSearch"
+              class="px-4 py-2 bg-blue-600 text-white font-medium rounded-r-md hover:bg-blue-700 focus:outline-none focus:ring">
+        🔍
+      </button>
+    </div>
+    <div id="searchResults" class="mt-2 text-sm text-gray-700"></div>
+  </div>
+
+  <!-- CONTAGEM MENSAL (sem meta fixa) -->
+  <form method="post" class="nao-imprimir">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+      <div class="bg-white rounded-lg shadow p-4">
+        <h2 class="font-semibold mb-2">Contagem Mensal</h2>
+        <p class="text-sm">{{ total_feito }} processos</p>
+      </div>
+    </div>
+
+    <!-- Seletor de semanas para impressão -->
+    <div class="mb-4">
+      <p class="font-semibold mb-2">Selecionar semanas para impressão:</p>
+      <div class="flex flex-wrap gap-2">
+        {% for semana in semanas %}
+        <label class="inline-flex items-center">
+          <input type="checkbox" class="semana-selector" value="{{ semana }}" checked>
+          <span class="ml-2">{{ semana }}</span>
+        </label>
+        {% endfor %}
+      </div>
+      <button type="button"
+              onclick="imprimirSelecionadas()"
+              class="mt-3 px-4 py-2 bg-gray-700 text-white rounded hover:bg-gray-800">
+        Imprimir Selecionadas
+      </button>
+    </div>
+  </form>
+
+  <!-- TABELA DE PRODUÇÃO COM + E ✖ -->
+  <form method="post" id="formProducao">
+     <div class="impressao-container">
+       {% for semana in semanas %}
+      <div class="mb-6 semana-impressao" data-semana="{{ semana }}">
+        <h2 class="text-xl font-semibold mb-2">Semana: {{ semana }}</h2>
+        <!-- Guardar quantas linhas essa semana tem -->
+        <input type="hidden"
+               name="{{ semana }}_rows"
+               class="rows-counter"
+               value="{{ linhas_por_semana[semana] }}">
+        <div class="overflow-x-auto">
+          <table class="min-w-full border-collapse text-sm">
+            <thead class="bg-blue-600 text-white">
+              <tr>
+                <th class="border px-2 py-1">LINHA</th>
+                <th class="border px-2 py-1">ITEM</th>
+                <th class="border px-2 py-1">Nº PROCESSO</th>
+                <th class="border px-2 py-1">NOME DO SEGURADO</th>
+                <th class="border px-2 py-1">HOMOLOGAÇÃO</th>
+                <th class="border px-2 py-1">FIXAÇÃO CIVIL</th>
+                <th class="border px-2 py-1">IN 68</th>
+                <th class="border px-2 py-1">CONF. CIVIL</th>
+                <th class="border px-2 py-1">REGISTRO CIVIL</th>
+                <th class="border px-2 py-1">FIXAÇÃO PENSÃO</th>
+                <th class="border px-2 py-1">CONF. PENSÃO</th>
+                <th class="border px-2 py-1">DILIGÊNCIA</th>
+                <th class="border px-2 py-1">OUTROS</th>
+                <th class="border px-2 py-1">SETOR</th>
+                <th class="border px-2 py-1">OBSERVAÇÕES</th>
+                <th class="border px-2 py-1">REMOVER LINHA</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for i in range(linhas_por_semana[semana]) %}
+              {% set p = processos_info[semana][i] %}
+              <tr class="even:bg-gray-100 main-row">
+                <td class="border px-2 py-1 text-center">
+                  <button type="button"
+                          class="toggle-doc-subrow mr-1 text-gray-500 hover:text-gray-800"
+                          title="Conferência documental">▸</button>
+                  {{ i+1 }}
+                  <!-- id para persistir -->
+                  <input type="hidden" name="{{ semana }}_{{ i }}_id"
+                         value="{{ p.id or '' }}">
+                </td>
+                <td class="border px-2 py-1 text-center">
+                  <select name="{{ semana }}_{{ i }}_status"
+                          class="w-full border rounded p-1 cursor-pointer
+                            {% if p and p.status=='finalizado' %}bg-blue-500 text-white
+                            {% elif p and p.status=='tramitado' %}bg-yellow-300 text-gray-800
+                            {% elif p and p.status=='aguardando' %}bg-gray-200 text-gray-800
+                            {% elif p and p.status=='acompanhar' %}bg-pink-300 text-white
+                            {% elif p and p.status=='conferido' %}bg-green-300 text-white{% endif %}"
+                          onchange="
+                            this.className = this.className.replace(/bg-\w+-\d{3}/g,'').trim()
+                              + ' ' +
+                            {
+                              'finalizado':'bg-blue-500 text-white',
+                              'tramitado':'bg-yellow-300 text-gray-800',
+                              'aguardando':'bg-gray-200 text-gray-800',
+                              'acompanhar':'bg-pink-300 text-white',
+                              'conferido':'bg-green-300 text-white'
+                            }[this.value]||''">
+                    <option value="">—</option>
+                    <option value="finalizado" {% if p and p.status=='finalizado' %}selected{% endif %}>X Finalizado</option>
+                    <option value="tramitado" {% if p and p.status=='tramitado' %}selected{% endif %}>»» Tramitado</option>
+                    <option value="aguardando" {% if p and p.status=='aguardando' %}selected{% endif %}>? Aguardando</option>
+                    <option value="acompanhar" {% if p and p.status=='acompanhar' %}selected{% endif %}>! Acompanhar</option>
+                    <option value="conferido" {% if p and p.status=='conferido' %}selected{% endif %}>X Conferido</option>
+                  </select>
+                </td>
+                <td class="border px-2 py-1">
+                  <input type="text"
+                         name="{{ semana }}_{{ i }}_numero_processo"
+                         value="{{ p.numero_processo or '' }}"
+                         class="w-full border p-1">
+                </td>
+                <td class="border px-2 py-1">
+                  <input type="text"
+                         name="{{ semana }}_{{ i }}_nome_do_segurado"
+                         value="{{ p.nome_do_segurado or '' }}"
+                         class="w-full border p-1">
+                </td>
+                <td class="border px-2 py-1 text-center">
+                  <input type="checkbox"
+                         name="{{ semana }}_{{ i }}_homologacao"
+                         {% if p and p.homologacao %}checked{% endif %}>
+                </td>
+                <td class="border px-2 py-1 text-center">
+                  <input type="checkbox"
+                         name="{{ semana }}_{{ i }}_fixacao_civil"
+                         {% if p and p.fixacao_civil %}checked{% endif %}>
+                </td>
+                <td class="border px-2 py-1 text-center">
+                  <input type="checkbox"
+                         name="{{ semana }}_{{ i }}_in_68"
+                         {% if p and p.in_68 %}checked{% endif %}>
+                </td>
+                <td class="border px-2 py-1 text-center">
+                  <input type="checkbox"
+                         name="{{ semana }}_{{ i }}_conf_civil"
+                         {% if p and p.conf_civil %}checked{% endif %}>
+                </td>
+                <td class="border px-2 py-1 text-center">
+                  <input type="checkbox"
+                         name="{{ semana }}_{{ i }}_registro_civil"
+                         {% if p and p.registro_civil %}checked{% endif %}>
+                </td>
+                <td class="border px-2 py-1 text-center">
+                  <input type="checkbox"
+                         name="{{ semana }}_{{ i }}_fixacao_pensao"
+                         {% if p and p.fixacao_pensao %}checked{% endif %}>
+                </td>
+                <td class="border px-2 py-1 text-center">
+                  <input type="checkbox"
+                         name="{{ semana }}_{{ i }}_conf_pensao"
+                         {% if p and p.conf_pensao %}checked{% endif %}>
+                </td>
+                <td class="border px-2 py-1 text-center">
+                  <input type="checkbox"
+                         name="{{ semana }}_{{ i }}_diligencia"
+                         {% if p and p.diligencia %}checked{% endif %}>
+                </td>
+                <td class="border px-2 py-1 text-center">
+                  <input type="checkbox"
+                         name="{{ semana }}_{{ i }}_outros"
+                         {% if p and p.outros %}checked{% endif %}>
+                </td>
+                <td class="border px-2 py-1">
+                  <input type="text"
+                         name="{{ semana }}_{{ i }}_setor"
+                         value="{{ p.setor or '' }}"
+                         class="w-full border p-1">
+                </td>
+                <td class="border px-2 py-1">
+                  <input type="text"
+                         name="{{ semana }}_{{ i }}_obs"
+                         value="{{ p.observacoes or '' }}"
+                         class="w-full border p-1">
+                </td>
+                <td class="border px-2 py-1 text-center">
+                  <button type="button" class="delete-row-btn text-red-600 hover:text-red-800">✖</button>
+                </td>
+              </tr>
+              <tr class="doc-subrow bg-gray-50 hidden">
+                <td colspan="16" class="p-2">
+                  <div class="grid grid-cols-6 gap-2 text-xs">
+                    {% set docs = [
+                      ('rg_cpf_doc','RG/CPF'),
+                      ('comp_residencia_doc','Comp. Resi'),
+                      ('cert_nasc_casamento_doc','Cert. Nasc/Cas.'),
+                      ('requerimento_doc','Requerim.'),
+                      ('dtc_doc','DTC'),
+                      ('negativa_pad_doc','Neg. PAD'),
+                      ('contracheque_doc','Contraq.'),
+                      ('declaracao_chefia_doc','Decl. Chefia'),
+                      ('termo_subsidio_doc','Termo Subsídio'),
+                      ('declaracao_bens_doc','Decl. Bens'),
+                      ('extrato_doc','Extrato'),
+                      ('qd_elevacao_doc','QD Elevação'),
+                      ('lotacao_doc','Lotação'),
+                      ('tempo_contribuicao_doc','Tempo Contr.'),
+                      ('anexos_tce_doc','Anexos TCE'),
+                      ('portaria_doc','Portaria'),
+                      ('fixacao_o_doc','Fixação o'),
+                      ('siarhes_doc','SIARHES')
+                    ] %}
+                    {% for field,label in docs %}
+                    <label class="flex items-center space-x-1 text-xs">
+                      <input type="checkbox"
+                             name="{{ semana }}_{{ i }}_{{ field }}"
+                             {% if p and (p|get_attr(field)) %}checked{% endif %}>
+                      <span>{{ label }}</span>
+                    </label>
+                    {% endfor %}
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="flex justify-between nao-imprimir mt-2">
+          <button type="submit"
+                  class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+            Salvar Produção
+          </button>
+          <button type="button"
+                  class="px-2 py-1 bg-gray-200 rounded add-row-btn"
+                  data-semana="{{ semana }}">
+            ＋
+          </button>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </form>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // FULLSCREEN
+  function toggleFullScreen() {
+    if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+    else document.exitFullscreen();
+  }
+
+  // IMPRIMIR SEMANAS SELECIONADAS
+  function imprimirSelecionadas() {
+    document.querySelectorAll('.semana-selector').forEach(cb => {
+      document.querySelector(`.semana-impressao[data-semana="${cb.value}"]`).style.display =
+        cb.checked ? 'block' : 'none';
+    });
+    window.print();
+    document.querySelectorAll('.semana-impressao').forEach(div => div.style.display = 'block');
+  }
+
+  // BUSCA GLOBAL
+  document.getElementById('btnSearch').addEventListener('click', async () => {
+    const q = document.getElementById('searchInput').value.trim();
+    if (!q) return;
+    const resp = await fetch(`{{ url_for('buscar_producao') }}?q=${encodeURIComponent(q)}`);
+    const { resultados } = await resp.json();
+    document.getElementById('searchResults').innerHTML =
+      resultados.length
+        ? resultados.map(r =>
+            `Encontrado: <strong>${r.numero_processo}</strong> (${r.nome_do_segurado}) — mês <em>${r.mes}</em>, semana <em>${r.semana}</em>`
+          ).join('<br>')
+        : `Nenhum resultado para "${q}"`;
+  });
+
+  // ADICIONAR LINHA
+  document.querySelectorAll('.add-row-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const container = btn.closest('.semana-impressao');
+      const semana    = container.dataset.semana;
+      const tbody     = container.querySelector('tbody');
+      const counter   = container.querySelector(`input[name="${semana}_rows"]`);
+      let count       = parseInt(counter.value, 10);
+
+      const mainRows  = tbody.querySelectorAll('tr.main-row');
+      const newIndex  = mainRows.length;
+      const newRow    = mainRows[newIndex - 1].cloneNode(true);
+
+      // incrementa contador
+      counter.value = count + 1;
+
+      // RENUMERA E LIMPA VALORES
+      newRow.querySelector('td').textContent = newIndex + 1;
+      newRow.querySelectorAll('input, select').forEach(el => {
+        el.name = el.name.replace(/_(\d+)_/, `_${newIndex}_`);
+        if (el.type === 'checkbox') el.checked = false;
+        else el.value = '';
+        el.className = el.className.replace(/bg-\w+-\d{3}/g, '').trim();
+      });
+
+      const subRow = tbody.querySelectorAll('tr.doc-subrow')[newIndex - 1].cloneNode(true);
+      subRow.classList.add('hidden');
+
+      tbody.appendChild(newRow);
+      tbody.appendChild(subRow);
+    });
+  });
+
+  // REMOVER LINHA
+  document.addEventListener('click', e => {
+    if (e.target.matches('.delete-row-btn')) {
+      const tr        = e.target.closest('tr.main-row');
+      const container = tr.closest('.semana-impressao');
+      const semana    = container.dataset.semana;
+      const counter   = container.querySelector(`input[name="${semana}_rows"]`);
+      const tbody     = container.querySelector('tbody');
+
+      tr.remove();
+      const sub = tr.nextElementSibling;
+      if (sub && sub.classList.contains('doc-subrow')) sub.remove();
+
+      Array.from(tbody.querySelectorAll('tr.main-row')).forEach((row, i) => {
+        row.querySelector('td').textContent = i + 1;
+        row.querySelectorAll('input, select').forEach(el => {
+          el.name = el.name.replace(/_(\d+)_/, `_${i}_`);
+        });
+      });
+
+      // atualiza contador
+      counter.value = tbody.querySelectorAll('tr.main-row').length;
+    }
+  });
+
+  // Toggle da sub-linha de conferência documental
+  document.addEventListener('click', function(e){
+    if (!e.target.matches('.toggle-doc-subrow')) return;
+    const btn  = e.target;
+    const main = btn.closest('tr.main-row');
+    const sub  = main.nextElementSibling;
+    if (sub && sub.classList.contains('doc-subrow')) {
+      sub.classList.toggle('hidden');
+      btn.textContent = sub.classList.contains('hidden') ? '▸' : '▾';
+    }
+  });
+
+  // No carregamento, aplica cor inicial nos selects de status
+  document.addEventListener('DOMContentLoaded', function() {
+    const map = {
+      'finalizado': 'bg-blue-500 text-white',
+      'tramitado' : 'bg-yellow-300 text-gray-800',
+      'aguardando': 'bg-gray-200 text-gray-800',
+      'acompanhar': 'bg-pink-300 text-white',
+      'conferido' : 'bg-green-300 text-white'
+    };
+    document.querySelectorAll('select[name$="_status"]').forEach(function(sel) {
+      const cls = map[sel.value];
+      if (cls) {
+        sel.className = 'w-full border rounded p-1 cursor-pointer ' + cls;
+      }
+    });
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% block title %}Conferência Documental – Processo {{ processo.id }}{% endblock %}
+{% block content %}
+<div class="p-6">
+  <h1 class="text-2xl font-bold mb-4">Conferência Documental</h1>
+  <form method="post" enctype="multipart/form-data">
+    <table class="table-auto w-full mb-4">
+      <thead><tr><th>Documento</th><th>Status</th></tr></thead>
+      <tbody>
+        {% for doc in documentos %}
+        <tr>
+          <td class="border px-2 py-1">{{ doc }}</td>
+          <td class="border px-2 py-1">
+            <select name="status_{{ doc }}" class="border p-1">
+              <option value="sim" {% if getattr(processo, doc.lower().replace(' ', '_') + '_doc') %}selected{% endif %}>✔ Sim</option>
+              <option value="não" {% if not getattr(processo, doc.lower().replace(' ', '_') + '_doc') %}selected{% endif %}>✖ Não</option>
+            </select>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <div class="mb-4">
+      <label class="block font-semibold mb-1">Anexar PDF do Processo:</label>
+      <input type="file" name="pdf_anexo" accept="application/pdf">
+      {% if processo.pdf_anexo %}
+      <p class="mt-2">
+        PDF atual: 
+        <a href="{{ url_for('static', filename='uploads/' ~ processo.pdf_anexo) }}" target="_blank">
+          {{ processo.pdf_anexo }}
+        </a>
+      </p>
+      {% endif %}
+    </div>
+    <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+      Salvar Conferência
+    </button>
+  </form>
+</div>
+{% endblock %}

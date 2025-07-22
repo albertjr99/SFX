@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="p-6 space-y-6">
+  <h1 class="text-2xl font-bold">Acompanhamento da Produção de toda a STC</h1>
+
+  <div class="mb-6">
+    <a href="{{ url_for('painel_gerente') }}"
+       class="bg-gray-600 text-white px-4 py-2 rounded">
+      ← Voltar ao Painel dos Gestores
+    </a>
+  </div>
+
+  <table class="w-full table-auto border text-sm bg-white shadow rounded mb-4">
+    <thead class="bg-gray-200">
+      <tr>
+        <th>Mês</th>
+        {% for campo in totais_anuais['Junho'].keys() %}
+          <th>{{ campo.replace('_',' ')|title }}</th>
+        {% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for m, dados in totais_anuais.items() %}
+      <tr>
+        <td class="font-semibold">{{ m }}</td>
+        {% for v in dados.values() %}
+          <td class="text-center">{{ v }}</td>
+        {% endfor %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="flex gap-4 mb-4">
+    <button id="btnGrafico"
+            class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+      Exibir Gráfico
+    </button>
+    <button onclick="window.print()"
+            class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+      Imprimir
+    </button>
+  </div>
+
+  <canvas id="graficoAtividades"
+          class="hidden w-full max-w-5xl mx-auto"></canvas>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  // Função de full-screen está no base.html
+  document.getElementById('btnGrafico').addEventListener('click', () => {
+    const c = document.getElementById('graficoAtividades');
+    c.classList.toggle('hidden');
+    if (!c.dataset.rendered) {
+      const labels = {{ campos|tojson }};
+      const data   = {{ grafico_anos|tojson }};
+      new Chart(c.getContext('2d'), {
+        type: 'bar',
+        data: { labels, datasets: [{ data, backgroundColor: 'rgba(54,162,235,0.7)' }] },
+        options: { responsive: true, plugins:{ legend:{display:false} } }
+      });
+      c.dataset.rendered = true;
+    }
+  });
+</script>
+{% endblock %}
