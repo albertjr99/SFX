@@ -90,6 +90,7 @@ class LinhaProducao(db.Model):
     # **NOVOS CAMPOS**:
     resolucao          = db.Column(db.Text, default='')
     removido           = db.Column(db.Boolean, default=False)
+    consideracoes = db.Column(db.Text, nullable=True)
 
     usuario = db.relationship('Usuario', backref='linhas')
 
