@@ -174,6 +174,9 @@ def primeiro_acesso():
 
 
 
+from datetime import datetime, date
+from sqlalchemy import or_
+
 @app.route('/pendencias', methods=['GET','POST'])
 @login_required
 def pendencias():
@@ -181,18 +184,23 @@ def pendencias():
         flash('Acesso não autorizado.', 'error')
         return redirect(url_for('login'))
 
-    # POST: tratar submissão de adicionar, remover/undo ou salvar resolução
+    # Gera lista de meses de Dez/2023 a Dez/2026
+    meses = gerar_lista_de_meses(
+        inicio=date(2023, 12, 1),
+        fim   =date(2026, 12, 1)
+    )
+    selected_mes = request.args.get('mes', meses[0])
+
     if request.method == 'POST':
         action  = request.form.get('action')
         proc_id = request.form.get('proc_id', type=int)
-        
-        # --- incluir nova pendência ---
+
         if action == 'add':
-            mes              = request.form['mes']
-            semana           = request.form['semana']
-            numero           = request.form['numero_processo']
-            nome             = request.form['nome_do_segurado']
-            status           = request.form['status']
+            mes  = request.form['mes']
+            semana = request.form['semana']
+            numero = request.form['numero_processo']
+            nome   = request.form['nome_do_segurado']
+            status = request.form['status']
             nova = LinhaProducao(
                 usuario_id       = current_user.id,
                 mes              = mes,
@@ -207,37 +215,41 @@ def pendencias():
             flash('Pendência adicionada com sucesso.', 'success')
 
         else:
-            # busca existente
             p = LinhaProducao.query.get_or_404(proc_id)
             if p.usuario_id != current_user.id:
                 flash('Operação não permitida.', 'error')
-                return redirect(url_for('pendencias'))
+                return redirect(url_for('pendencias', mes=selected_mes))
 
             if action == 'toggle_removido':
                 p.removido = not p.removido
                 db.session.commit()
                 flash('Pendência atualizada.', 'success')
 
+            elif action == 'save_consideracoes':
+                p.consideracoes = request.form.get('consideracoes','').strip()
+                db.session.commit()
+                flash('Considerações salvas com sucesso.', 'success')
+
             elif action == 'save_resolucao':
-                p.resolucao = request.form.get('resolucao', '').strip()
+                p.resolucao = request.form.get('resolucao','').strip()
                 db.session.commit()
                 flash('Resolução salva com sucesso.', 'success')
 
-        return redirect(url_for('pendencias'))
+        return redirect(url_for('pendencias', mes=selected_mes))
 
-    # GET: listar pendências e removidas, ordenando por data_registro
+    # GET: listar pendências
     pend_status = ['tramitado', 'aguardando', 'acompanhar']
     procs = (
-      LinhaProducao.query
-        .filter(LinhaProducao.usuario_id == current_user.id)
-        .filter(
-          or_(
-            LinhaProducao.status.in_(pend_status),
-            LinhaProducao.removido == True
+        LinhaProducao.query
+          .filter(LinhaProducao.usuario_id == current_user.id)
+          .filter(
+              or_(
+                  LinhaProducao.status.in_(pend_status),
+                  LinhaProducao.removido == True
+              )
           )
-        )
-        .order_by(LinhaProducao.data_registro.asc())
-        .all()
+          .order_by(LinhaProducao.data_registro.asc())
+          .all()
     )
 
     labels = {
@@ -248,7 +260,10 @@ def pendencias():
 
     return render_template('pendencias.html',
                            procs=procs,
-                           labels=labels)
+                           labels=labels,
+                           meses=meses,
+                           selected_mes=selected_mes
+    )
 
 
 @app.route('/buscar_producao')
