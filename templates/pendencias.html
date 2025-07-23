@@ -1,9 +1,11 @@
 {% extends 'base.html' %}
+
 {% block title %}Pendências – {{ current_user.nome }}{% endblock %}
 
 {% block head %}
 <style>
-  textarea.resolucao {
+  textarea.resolucao,
+  textarea.consideracoes {
     min-width: 10ch; max-width: 100%;
     min-height: 3em; padding: .5em;
     border: 1px solid #ccc; border-radius: .25rem;
@@ -11,25 +13,11 @@
     font-size: 1rem; line-height: 1.5;
     box-sizing: content-box; overflow: hidden;
   }
-
   @media print {
-    /* força impressão de cores reais */
-    * {
-      -webkit-print-color-adjust: exact !important;
-      print-color-adjust: exact !important;
-    }
-    /* mantém cor de fundo e texto */
-    table, th, td {
-      background-color: inherit !important;
-      color: inherit !important;
-    }
-    thead tr {
-      background-color: #e53e3e !important;
-      color: white !important;
-    }
-    /* remove tudo que for marcado pra não imprimir */
+    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    table, th, td { background-color: inherit !important; color: inherit !important; }
+    thead tr { background-color: #e53e3e !important; color: white !important; }
     .nao-imprimir { display: none !important; }
-    /* esconde linhas removidas */
     tr.removido { display: none !important; }
   }
 </style>
@@ -40,13 +28,12 @@
   <h1 class="text-2xl font-bold mb-4">Pendências</h1>
 
   <div class="mb-4 nao-imprimir">
-    <a href="{{ url_for('registrar_producao') }}"
+    <a href="{{ url_for('registrar_producao', mes=selected_mes) }}"
        class="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700">
-      Voltar para o Painel Principal
+      ← Voltar para o Painel Principal
     </a>
   </div>
 
-  <!-- botão de imprimir -->
   <div class="mb-4 nao-imprimir">
     <button onclick="window.print()"
             class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
@@ -54,7 +41,6 @@
     </button>
   </div>
 
-  <!-- botão de adicionar -->
   <div class="mb-6 nao-imprimir">
     <button id="btn-show-add"
             class="px-4 py-2 bg-yellow-600 text-white rounded hover:bg-white-700">
@@ -62,15 +48,14 @@
     </button>
   </div>
 
-  <!-- formulário de inclusão (escondido até clicar) -->
   <div id="form-add" class="mb-6 p-4 border rounded bg-gray-50 hidden nao-imprimir">
     <form method="post" class="flex flex-wrap gap-2 items-end">
       <input type="hidden" name="action" value="add"/>
 
       <select name="mes" required class="border px-2 py-1 rounded">
         <option value="" disabled selected>Mês</option>
-        {% for m in ['Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'] %}
-        <option value="{{ m }}">{{ m }}</option>
+        {% for m in meses %}
+        <option value="{{ m }}" {% if m==selected_mes %}selected{% endif %}>{{ m }}</option>
         {% endfor %}
       </select>
 
@@ -112,18 +97,14 @@
             <th class="border px-2 py-1">Nº Processo</th>
             <th class="border px-2 py-1">Nome do Segurado</th>
             <th class="border px-2 py-1">Status</th>
+            <th class="border px-2 py-1">Considerações</th>
             <th class="border px-2 py-1">Como foi resolvido?</th>
             <th class="border px-2 py-1 nao-imprimir">Ações</th>
           </tr>
         </thead>
         <tbody>
           {% for p in procs %}
-          <tr class="
-              {% if p.removido %}
-                removido bg-gray-200
-              {% else %}
-                even:bg-gray-50
-              {% endif %}">
+          <tr class="{% if p.removido %}removido bg-gray-200{% else %}even:bg-gray-50{% endif %}">
             <td class="border px-2 py-1 text-xs">{{ p.data_registro.strftime('%d/%m/%Y %H:%M') }}</td>
             <td class="border px-2 py-1">{{ p.mes }}</td>
             <td class="border px-2 py-1">{{ p.semana }}</td>
@@ -131,14 +112,38 @@
             <td class="border px-2 py-1">{{ p.numero_processo }}</td>
             <td class="border px-2 py-1">{{ p.nome_do_segurado }}</td>
             <td class="border px-2 py-1">
-              <span style="-webkit-print-color-adjust:exact; print-color-adjust:exact;
+              <span style="
+                -webkit-print-color-adjust:exact;
+                print-color-adjust:exact;
                 {% if p.status=='tramitado' %}background-color:#ecc94b;color:#2d3748;{% endif %}
                 {% if p.status=='aguardando' %}background-color:#e2e8f0;color:#2d3748;{% endif %}
                 {% if p.status=='acompanhar' %}background-color:#fbb6ce;color:white;{% endif %}
-                padding:.125rem .5rem; border-radius:.25rem;">
+                padding:.125rem .5rem;
+                border-radius:.25rem;">
                 {{ labels[p.status] }}
               </span>
             </td>
+            <!-- Nova coluna Considerações -->
+            <td class="border px-2 py-1">
+              <form method="post" class="flex items-start space-x-2">
+                <textarea
+                  name="consideracoes"
+                  class="consideracoes"
+                  placeholder="Insira aqui suas considerações..."
+                  oninput="
+                    this.style.height='auto';
+                    this.style.height=this.scrollHeight+'px';
+                  "
+                >{{ p.consideracoes or '' }}</textarea>
+                <input type="hidden" name="proc_id" value="{{ p.id }}"/>
+                <input type="hidden" name="action" value="save_consideracoes"/>
+                <button type="submit"
+                        class="px-3 py-1 bg-indigo-600 text-white rounded hover:bg-indigo-700 nao-imprimir">
+                  Salvar
+                </button>
+              </form>
+            </td>
+            <!-- Coluna original Como foi resolvido -->
             <td class="border px-2 py-1">
               <form method="post" class="flex items-start space-x-2">
                 <textarea
@@ -148,8 +153,7 @@
                   oninput="
                     this.style.height='auto';
                     this.style.height=this.scrollHeight+'px';
-                    this.style.width='auto';
-                    this.style.width=this.scrollWidth+'px';"
+                  "
                 >{{ p.resolucao or '' }}</textarea>
                 <input type="hidden" name="proc_id" value="{{ p.id }}"/>
                 <input type="hidden" name="action" value="save_resolucao"/>
@@ -166,42 +170,3 @@
                 {% if not p.removido %}
                   <button type="submit"
                           class="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700">
-                    Remover
-                  </button>
-                {% else %}
-                  <button type="submit"
-                          class="px-3 py-1 bg-gray-600 text-white rounded hover:bg-gray-700">
-                    Desfazer
-                  </button>
-                {% endif %}
-              </form>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  {% else %}
-    <p>Nenhuma pendência encontrada.</p>
-  {% endif %}
-</div>
-{% endblock %}
-
-{% block scripts %}
-<script>
-  // mostra/oculta o formulário de adicionar
-  document.getElementById('btn-show-add').addEventListener('click', () => {
-    document.getElementById('form-add').classList.toggle('hidden');
-  });
-
-  // ao carregar, reajusta textareas para mostrar todo o texto salvo
-  document.addEventListener('DOMContentLoaded', () => {
-    document.querySelectorAll('textarea.resolucao').forEach(el => {
-      el.style.height = 'auto';
-      el.style.height = el.scrollHeight + 'px';
-      el.style.width  = 'auto';
-      el.style.width  = el.scrollWidth  + 'px';
-    });
-  });
-</script>
-{% endblock %}
