@@ -1,206 +1,194 @@
 {% extends 'base.html' %}
-{% block title %}Pendências – {{ current_user.nome }}{% endblock %}
+{% block title %}Pendências — IPAJM{% endblock %}
+{% block topbar_title %}Controle de Pendências{% endblock %}
 
-{% block head %}
-<style>
-  textarea.resolucao {
-    min-width: 10ch; max-width: 100%;
-    min-height: 3em; padding: .5em;
-    border: 1px solid #ccc; border-radius: .25rem;
-    resize: both; font-family: inherit;
-    font-size: 1rem; line-height: 1.5;
-    box-sizing: content-box; overflow: hidden;
-  }
+{% block head_styles %}
+.status-pill {
+  display:inline-flex; align-items:center; gap:5px;
+  padding:3px 10px; border-radius:99px; font-size:11.5px; font-weight:700;
+}
+.status-tramitado  { background:#fef9c3; color:#a16207; }
+.status-aguardando { background:#f1f5f9; color:#475569; }
+.status-acompanhar { background:#fce7f3; color:#9d174d; }
+.resolucao-area {
+  width:100%; min-width:140px;
+  border:1.5px solid #e2e8f0; border-radius:6px;
+  padding:5px 8px; font-size:12px; resize:both;
+  font-family:'Plus Jakarta Sans',sans-serif;
+  min-height:40px; transition:border-color .15s;
+  overflow:hidden;
+}
+.resolucao-area:focus { border-color:#16a34a; outline:none; box-shadow:0 0 0 2px rgba(22,163,74,.1); }
 
-  @media print {
-    /* força impressão de cores reais */
-    * {
-      -webkit-print-color-adjust: exact !important;
-      print-color-adjust: exact !important;
-    }
-    /* mantém cor de fundo e texto */
-    table, th, td {
-      background-color: inherit !important;
-      color: inherit !important;
-    }
-    thead tr {
-      background-color: #e53e3e !important;
-      color: white !important;
-    }
-    /* remove tudo que for marcado pra não imprimir */
-    .nao-imprimir { display: none !important; }
-    /* esconde linhas removidas */
-    tr.removido { display: none !important; }
-  }
-</style>
+@media print {
+  * { -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important; }
+  .data-table thead th { background:#dc2626 !important; color:#fff !important; }
+  tr.removido { display:none !important; }
+}
 {% endblock %}
 
 {% block content %}
-<div class="p-6">
-  <h1 class="text-2xl font-bold mb-4">Pendências</h1>
+<div class="page-header">
+  <h1>Pendências</h1>
+  <p>{{ current_user.nome }} — acompanhamento e resolução de processos pendentes</p>
+</div>
 
-  <div class="mb-4 nao-imprimir">
-    <a href="{{ url_for('registrar_producao') }}"
-       class="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700">
-      Voltar para o Painel Principal
+<!-- Actions bar -->
+<div class="card nao-imprimir" style="margin-bottom:24px;">
+  <div class="card-body" style="display:flex; flex-wrap:wrap; gap:10px; align-items:center;">
+    <a href="{{ url_for('registrar_producao') }}" class="btn btn-secondary">
+      <i class="ri-arrow-left-line"></i> Voltar ao Painel
     </a>
-  </div>
-
-  <!-- botão de imprimir -->
-  <div class="mb-4 nao-imprimir">
-    <button onclick="window.print()"
-            class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-      🖨️ Imprimir Pendências
+    <button onclick="window.print()" class="btn btn-secondary">
+      <i class="ri-printer-line"></i> Imprimir
+    </button>
+    <button id="btn-show-add" class="btn btn-primary" style="margin-left:auto;">
+      <i class="ri-add-line"></i> Adicionar Pendência
     </button>
   </div>
+</div>
 
-  <!-- botão de adicionar -->
-  <div class="mb-6 nao-imprimir">
-    <button id="btn-show-add"
-            class="px-4 py-2 bg-yellow-600 text-white rounded hover:bg-white-700">
-      ➕ Adicionar Pendência Manualmente
-    </button>
+<!-- Form: Add Pendency -->
+<div id="form-add" class="card nao-imprimir" style="margin-bottom:24px; display:none; border-color:#fde68a;">
+  <div class="card-header" style="background:#fffbeb;">
+    <i class="ri-add-circle-line" style="color:#d97706;font-size:17px;"></i>
+    <h2 style="color:#92400e;">Nova Pendência Manual</h2>
   </div>
-
-  <!-- formulário de inclusão (escondido até clicar) -->
-  <div id="form-add" class="mb-6 p-4 border rounded bg-gray-50 hidden nao-imprimir">
-    <form method="post" class="flex flex-wrap gap-2 items-end">
+  <div class="card-body">
+    <form method="post" style="display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:12px; align-items:end;">
       <input type="hidden" name="action" value="add"/>
-
-      <select name="mes" required class="border px-2 py-1 rounded">
-        <option value="" disabled selected>Mês</option>
-        {% for m in ['Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'] %}
-        <option value="{{ m }}">{{ m }}</option>
-        {% endfor %}
-      </select>
-
-      <input name="semana" type="text" required
-             placeholder="Semana (dd/mm a dd/mm)"
-             class="border px-2 py-1 rounded flex-1"/>
-
-      <input name="numero_processo" type="text" required
-             placeholder="Nº Processo"
-             class="border px-2 py-1 rounded"/>
-
-      <input name="nome_do_segurado" type="text" required
-             placeholder="Nome do Segurado"
-             class="border px-2 py-1 rounded flex-1"/>
-
-      <select name="status" required class="border px-2 py-1 rounded">
-        <option value="" disabled selected>Status</option>
-        <option value="tramitado">Tramitado – aguardando</option>
-        <option value="aguardando">Aguardando orientação Chefe</option>
-        <option value="acompanhar">Acompanhar após envio</option>
-      </select>
-
-      <button type="submit"
-              class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
-        Salvar
-      </button>
+      <div>
+        <label class="form-label">Mês</label>
+        <select name="mes" required class="form-select">
+          <option value="" disabled selected>Selecione</option>
+          {% for m in ['Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'] %}
+          <option value="{{ m }}">{{ m }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label class="form-label">Semana</label>
+        <input type="text" name="semana" required placeholder="dd/mm a dd/mm" class="form-input">
+      </div>
+      <div>
+        <label class="form-label">Nº Processo</label>
+        <input type="text" name="numero_processo" required placeholder="Número" class="form-input">
+      </div>
+      <div>
+        <label class="form-label">Nome do Segurado</label>
+        <input type="text" name="nome_do_segurado" required placeholder="Nome completo" class="form-input">
+      </div>
+      <div>
+        <label class="form-label">Status</label>
+        <select name="status" required class="form-select">
+          <option value="" disabled selected>Selecione</option>
+          <option value="tramitado">Tramitado – aguardando</option>
+          <option value="aguardando">Aguardando orientação Chefe</option>
+          <option value="acompanhar">Acompanhar após envio</option>
+        </select>
+      </div>
+      <div>
+        <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center;">
+          <i class="ri-save-line"></i> Salvar
+        </button>
+      </div>
     </form>
   </div>
-
-  {% if procs %}
-    <div class="overflow-x-auto">
-      <table class="min-w-full table-auto text-sm border-collapse">
-        <thead class="bg-red-600 text-white">
-          <tr>
-            <th class="border px-2 py-1">Data</th>
-            <th class="border px-2 py-1">Mês</th>
-            <th class="border px-2 py-1">Semana</th>
-            <th class="border px-2 py-1">LINHA</th>
-            <th class="border px-2 py-1">Nº Processo</th>
-            <th class="border px-2 py-1">Nome do Segurado</th>
-            <th class="border px-2 py-1">Status</th>
-            <th class="border px-2 py-1">Como foi resolvido?</th>
-            <th class="border px-2 py-1 nao-imprimir">Ações</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for p in procs %}
-          <tr class="
-              {% if p.removido %}
-                removido bg-gray-200
-              {% else %}
-                even:bg-gray-50
-              {% endif %}">
-            <td class="border px-2 py-1 text-xs">{{ p.data_registro.strftime('%d/%m/%Y %H:%M') }}</td>
-            <td class="border px-2 py-1">{{ p.mes }}</td>
-            <td class="border px-2 py-1">{{ p.semana }}</td>
-            <td class="border px-2 py-1 text-center">{{ p.indice_linha or '-' }}</td>
-            <td class="border px-2 py-1">{{ p.numero_processo }}</td>
-            <td class="border px-2 py-1">{{ p.nome_do_segurado }}</td>
-            <td class="border px-2 py-1">
-              <span style="-webkit-print-color-adjust:exact; print-color-adjust:exact;
-                {% if p.status=='tramitado' %}background-color:#ecc94b;color:#2d3748;{% endif %}
-                {% if p.status=='aguardando' %}background-color:#e2e8f0;color:#2d3748;{% endif %}
-                {% if p.status=='acompanhar' %}background-color:#fbb6ce;color:white;{% endif %}
-                padding:.125rem .5rem; border-radius:.25rem;">
-                {{ labels[p.status] }}
-              </span>
-            </td>
-            <td class="border px-2 py-1">
-              <form method="post" class="flex items-start space-x-2">
-                <textarea
-                  name="resolucao"
-                  class="resolucao"
-                  placeholder="Descreva aqui..."
-                  oninput="
-                    this.style.height='auto';
-                    this.style.height=this.scrollHeight+'px';
-                    this.style.width='auto';
-                    this.style.width=this.scrollWidth+'px';"
-                >{{ p.resolucao or '' }}</textarea>
-                <input type="hidden" name="proc_id" value="{{ p.id }}"/>
-                <input type="hidden" name="action" value="save_resolucao"/>
-                <button type="submit"
-                        class="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 nao-imprimir">
-                  Salvar
-                </button>
-              </form>
-            </td>
-            <td class="border px-2 py-1 nao-imprimir">
-              <form method="post">
-                <input type="hidden" name="proc_id" value="{{ p.id }}"/>
-                <input type="hidden" name="action" value="toggle_removido"/>
-                {% if not p.removido %}
-                  <button type="submit"
-                          class="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700">
-                    Remover
-                  </button>
-                {% else %}
-                  <button type="submit"
-                          class="px-3 py-1 bg-gray-600 text-white rounded hover:bg-gray-700">
-                    Desfazer
-                  </button>
-                {% endif %}
-              </form>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  {% else %}
-    <p>Nenhuma pendência encontrada.</p>
-  {% endif %}
 </div>
+
+{% if procs %}
+<div class="card">
+  <div class="card-header">
+    <i class="ri-error-warning-line" style="color:#dc2626;font-size:17px;"></i>
+    <h2>Processos com Pendência</h2>
+    <span class="badge badge-red" style="margin-left:auto;">{{ procs|length }} item(s)</span>
+  </div>
+  <div style="overflow-x:auto;">
+    <table class="data-table">
+      <thead>
+        <tr style="background:#dc2626 !important;">
+          <th>Data</th>
+          <th>Mês</th>
+          <th>Semana</th>
+          <th>Linha</th>
+          <th>Nº Processo</th>
+          <th>Nome do Segurado</th>
+          <th>Status</th>
+          <th style="min-width:200px;">Como foi resolvido?</th>
+          <th class="nao-imprimir">Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in procs %}
+        <tr class="{{ 'removido' if p.removido else '' }}"
+            style="{{ 'opacity:.45; background:#f9fafb;' if p.removido else '' }}">
+          <td style="font-size:11px; color:#64748b; white-space:nowrap;">
+            {{ p.data_registro.strftime('%d/%m/%Y') }}<br>
+            <span style="color:#94a3b8;">{{ p.data_registro.strftime('%H:%M') }}</span>
+          </td>
+          <td>{{ p.mes }}</td>
+          <td style="white-space:nowrap; font-size:11px;">{{ p.semana }}</td>
+          <td style="font-weight:700; color:#94a3b8;">{{ p.indice_linha or '—' }}</td>
+          <td style="font-weight:600;">{{ p.numero_processo }}</td>
+          <td style="text-align:left;">{{ p.nome_do_segurado }}</td>
+          <td>
+            <span class="status-pill status-{{ p.status }}">
+              {{ labels[p.status] }}
+            </span>
+          </td>
+          <td>
+            <form method="post" style="display:flex; align-items:flex-start; gap:6px;">
+              <textarea name="resolucao" class="resolucao-area"
+                        placeholder="Descreva a resolução..."
+                        oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px';"
+              >{{ p.resolucao or '' }}</textarea>
+              <input type="hidden" name="proc_id" value="{{ p.id }}"/>
+              <input type="hidden" name="action" value="save_resolucao"/>
+              <button type="submit" class="btn btn-primary btn-sm nao-imprimir" title="Salvar">
+                <i class="ri-save-line"></i>
+              </button>
+            </form>
+          </td>
+          <td class="nao-imprimir">
+            <form method="post">
+              <input type="hidden" name="proc_id" value="{{ p.id }}"/>
+              <input type="hidden" name="action" value="toggle_removido"/>
+              {% if not p.removido %}
+                <button type="submit" class="btn btn-danger btn-sm">
+                  <i class="ri-delete-bin-6-line"></i>
+                </button>
+              {% else %}
+                <button type="submit" class="btn btn-secondary btn-sm">
+                  <i class="ri-arrow-go-back-line"></i>
+                </button>
+              {% endif %}
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="card" style="text-align:center; padding:60px 20px;">
+  <i class="ri-checkbox-circle-line" style="font-size:48px; color:#22c55e; margin-bottom:12px; display:block;"></i>
+  <p style="font-size:15px; font-weight:700; color:#1e293b;">Nenhuma pendência encontrada</p>
+  <p style="font-size:13px; color:#64748b;">Tudo em dia! Adicione manualmente se necessário.</p>
+</div>
+{% endif %}
 {% endblock %}
 
 {% block scripts %}
 <script>
-  // mostra/oculta o formulário de adicionar
   document.getElementById('btn-show-add').addEventListener('click', () => {
-    document.getElementById('form-add').classList.toggle('hidden');
+    const f = document.getElementById('form-add');
+    f.style.display = f.style.display === 'none' ? 'block' : 'none';
   });
-
-  // ao carregar, reajusta textareas para mostrar todo o texto salvo
   document.addEventListener('DOMContentLoaded', () => {
-    document.querySelectorAll('textarea.resolucao').forEach(el => {
+    document.querySelectorAll('.resolucao-area').forEach(el => {
       el.style.height = 'auto';
       el.style.height = el.scrollHeight + 'px';
-      el.style.width  = 'auto';
-      el.style.width  = el.scrollWidth  + 'px';
     });
   });
 </script>
