@@ -1,148 +1,140 @@
-{# templates/painel_estagiarias.html #}
 {% extends 'base.html' %}
+{% block title %}Painel das Estagiárias — IPAJM{% endblock %}
+{% block topbar_title %}Registro de Produção{% endblock %}
+
+{% block head_styles %}
+.overflow-table { overflow-x:auto; border-radius:12px; border:1px solid #e8edf4; box-shadow:0 1px 4px rgba(0,0,0,.04); }
+{% endblock %}
+
 {% block content %}
-<div class="p-6">
-  <h1 class="text-2xl font-bold mb-4">Painel das Estagiárias</h1>
+<div class="page-header">
+  <h1>Painel das Estagiárias</h1>
+  <p>Selecione um analista para registrar ou editar a produção da semana</p>
+</div>
 
-  <form method="get" action="{{ url_for('painel_estagiarias') }}" class="mb-6">
-    <label class="block mb-2 font-semibold">Selecione um Analista</label>
-    <select name="analista_id" class="border rounded p-2 w-full mb-4">
-      <optgroup label="Presencial">
-        {% for analista in analistas_presencial %}
-        <option value="{{ analista.id }}"
-          {% if usuario_selecionado and analista.id == usuario_selecionado.id %}selected{% endif %}>
-          {{ analista.nome }}
-        </option>
-        {% endfor %}
-      </optgroup>
-      <optgroup label="Teletrabalho">
-        {% for analista in analistas_teletrabalho %}
-        <option value="{{ analista.id }}"
-          {% if usuario_selecionado and analista.id == usuario_selecionado.id %}selected{% endif %}>
-          {{ analista.nome }}
-        </option>
-        {% endfor %}
-      </optgroup>
-    </select>
-    <input type="hidden" name="mes" value="{{ mes }}">
-    <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded">Carregar Produção</button>
-  </form>
+<!-- Analista Selector -->
+<div class="card" style="margin-bottom:28px;">
+  <div class="card-header">
+    <i class="ri-user-search-line" style="color:#16a34a;font-size:17px;"></i>
+    <h2>Selecionar Analista</h2>
+  </div>
+  <div class="card-body">
+    <form method="get" action="{{ url_for('painel_estagiarias') }}"
+          style="display:grid; grid-template-columns:1fr auto; gap:14px; align-items:end;">
+      <div>
+        <label class="form-label">Analista</label>
+        <select name="analista_id" class="form-select">
+          <optgroup label="📍 Presencial">
+            {% for analista in analistas_presencial %}
+              <option value="{{ analista.id }}"
+                {% if usuario_selecionado and analista.id == usuario_selecionado.id %}selected{% endif %}>
+                {{ analista.nome }}
+              </option>
+            {% endfor %}
+          </optgroup>
+          <optgroup label="🏠 Teletrabalho">
+            {% for analista in analistas_teletrabalho %}
+              <option value="{{ analista.id }}"
+                {% if usuario_selecionado and analista.id == usuario_selecionado.id %}selected{% endif %}>
+                {{ analista.nome }}
+              </option>
+            {% endfor %}
+          </optgroup>
+        </select>
+        <input type="hidden" name="mes" value="{{ mes }}">
+      </div>
+      <button type="submit" class="btn btn-primary" style="height:42px;">
+        <i class="ri-loader-4-line"></i> Carregar Produção
+      </button>
+    </form>
+  </div>
+</div>
 
-  {% if usuario_selecionado %}
-  <form method="post"
-        action="{{ url_for('editar_producao_lote',
-                            analista_id=usuario_selecionado.id,
-                            mes=mes) }}">
-    {% for semana in semanas %}
-    <div class="mb-6">
-      <h2 class="font-semibold text-lg mb-2">Semana: {{ semana }}</h2>
-      <table class="w-full table-auto border">
-        <thead class="bg-gray-200">
+{% if usuario_selecionado %}
+<!-- Banner -->
+<div style="background:linear-gradient(135deg,#052e16,#166534); border-radius:14px; padding:18px 24px; margin-bottom:28px;">
+  <div style="color:rgba(255,255,255,.6); font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; margin-bottom:3px;">Registrando produção para</div>
+  <div style="color:#fff; font-size:19px; font-weight:800; letter-spacing:-.02em;">{{ usuario_selecionado.nome }} &mdash; {{ mes }}</div>
+</div>
+
+<form method="post" action="{{ url_for('editar_producao_lote', analista_id=usuario_selecionado.id, mes=mes) }}">
+  {% for semana in semanas %}
+  <div style="margin-bottom:32px;">
+    <div class="section-week"><i class="ri-calendar-week-line"></i> Semana: {{ semana }}</div>
+    <div class="overflow-table">
+      <table class="data-table">
+        <thead>
           <tr>
-            <th class="border px-2">LINHA</th>
-            <th class="border px-2">ITEM</th>
-            <th class="border px-2">Nº PROCESSO</th>
-            <th class="border px-2">NOME DO SEGURADO</th>
-            <th class="border px-2">HOMOLOGAÇÃO</th>
-            <th class="border px-2">FIXAÇÃO CIVIL</th>
-            <th class="border px-2">IN</th>
-            <th class="border px-2">CONF. CIVIL</th>
-            <th class="border px-2">REGISTRO CIVIL</th>
-            <th class="border px-2">FIXAÇÃO PENSÃO</th>
-            <th class="border px-2">CONF. PENSÃO</th>
-            <th class="border px-2">DILIGÊNCIA</th>
-            <th class="border px-2">OUTROS</th>
-            <th class="border px-2">SETOR</th>
-            <th class="border px-2">OBSERVAÇÕES</th>
+            <th>#</th>
+            <th>Nº Processo</th>
+            <th>Nome do Segurado</th>
+            <th>Homologação</th>
+            <th>Fixação Civil</th>
+            <th>IN</th>
+            <th>Conf. Civil</th>
+            <th>Reg. Civil</th>
+            <th>Fix. Pensão</th>
+            <th>Conf. Pensão</th>
+            <th>Diligência</th>
+            <th>Outros</th>
+            <th>Setor</th>
+            <th>Observações</th>
           </tr>
         </thead>
         <tbody>
           {% for i in range(linhas) %}
           <tr>
-            <td class="border px-2 text-center">{{ i+1 }}</td>
-            <td class="border px-2 text-center">ITEM</td>
-            <td class="border px-2">
-              <input type="text"
-                     name="{{ semana }}_{{ i }}_numero_processo"
-                     class="w-full border p-1"
-                     value="{{ processos_info[semana][i].numero_processo if processos_info[semana][i] else '' }}">
+            <td style="font-weight:700;color:#94a3b8;">{{ i+1 }}</td>
+            <td>
+              <input type="text" name="{{ semana }}_{{ i }}_numero_processo"
+                     value="{{ processos_info[semana][i].numero_processo if processos_info[semana][i] else '' }}"
+                     placeholder="Nº processo" style="min-width:100px;">
             </td>
-            <td class="border px-2">
-              <input type="text"
-                     name="{{ semana }}_{{ i }}_nome"
-                     class="w-full border p-1"
-                     value="{{ processos_info[semana][i].nome if processos_info[semana][i] else '' }}">
+            <td>
+              <input type="text" name="{{ semana }}_{{ i }}_nome"
+                     value="{{ processos_info[semana][i].nome if processos_info[semana][i] else '' }}"
+                     placeholder="Nome" style="min-width:140px;">
             </td>
-            <td class="border px-2 text-center">
-              <input type="checkbox"
-                     name="{{ semana }}_{{ i }}_homologacao"
-                     {% if processos_info[semana][i] and processos_info[semana][i].homologacao %}checked{% endif %}>
+            <td><input type="checkbox" name="{{ semana }}_{{ i }}_homologacao"
+                 {% if processos_info[semana][i] and processos_info[semana][i].homologacao %}checked{% endif %}></td>
+            <td><input type="checkbox" name="{{ semana }}_{{ i }}_fixacao_civil"
+                 {% if processos_info[semana][i] and processos_info[semana][i].fixacao_civil %}checked{% endif %}></td>
+            <td><input type="checkbox" name="{{ semana }}_{{ i }}_in_68"
+                 {% if processos_info[semana][i] and processos_info[semana][i].in_68 %}checked{% endif %}></td>
+            <td><input type="checkbox" name="{{ semana }}_{{ i }}_conf_civil"
+                 {% if processos_info[semana][i] and processos_info[semana][i].conf_civil %}checked{% endif %}></td>
+            <td><input type="checkbox" name="{{ semana }}_{{ i }}_registro_civil"
+                 {% if processos_info[semana][i] and processos_info[semana][i].registro_civil %}checked{% endif %}></td>
+            <td><input type="checkbox" name="{{ semana }}_{{ i }}_fixacao_pensao"
+                 {% if processos_info[semana][i] and processos_info[semana][i].fixacao_pensao %}checked{% endif %}></td>
+            <td><input type="checkbox" name="{{ semana }}_{{ i }}_conf_pensao"
+                 {% if processos_info[semana][i] and processos_info[semana][i].conf_pensao %}checked{% endif %}></td>
+            <td><input type="checkbox" name="{{ semana }}_{{ i }}_diligencia"
+                 {% if processos_info[semana][i] and processos_info[semana][i].diligencia %}checked{% endif %}></td>
+            <td><input type="checkbox" name="{{ semana }}_{{ i }}_outros"
+                 {% if processos_info[semana][i] and processos_info[semana][i].outros %}checked{% endif %}></td>
+            <td>
+              <input type="text" name="{{ semana }}_{{ i }}_setor"
+                     value="{{ processos_info[semana][i].setor if processos_info[semana][i] else '' }}"
+                     placeholder="Setor" style="min-width:80px;">
             </td>
-            <td class="border px-2 text-center">
-              <input type="checkbox"
-                     name="{{ semana }}_{{ i }}_fixacao_civil"
-                     {% if processos_info[semana][i] and processos_info[semana][i].fixacao_civil %}checked{% endif %}>
-            </td>
-            <td class="border px-2 text-center">
-              <input type="checkbox"
-                     name="{{ semana }}_{{ i }}_in_68"
-                     {% if processos_info[semana][i] and processos_info[semana][i].in_68 %}checked{% endif %}>
-            </td>
-            <td class="border px-2 text-center">
-              <input type="checkbox"
-                     name="{{ semana }}_{{ i }}_conf_civil"
-                     {% if processos_info[semana][i] and processos_info[semana][i].conf_civil %}checked{% endif %}>
-            </td>
-            <td class="border px-2 text-center">
-              <input type="checkbox"
-                     name="{{ semana }}_{{ i }}_registro_civil"
-                     {% if processos_info[semana][i] and processos_info[semana][i].registro_civil %}checked{% endif %}>
-            </td>
-            <td class="border px-2 text-center">
-              <input type="checkbox"
-                     name="{{ semana }}_{{ i }}_fixacao_pensao"
-                     {% if processos_info[semana][i] and processos_info[semana][i].fixacao_pensao %}checked{% endif %}>
-            </td>
-            <td class="border px-2 text-center">
-              <input type="checkbox"
-                     name="{{ semana }}_{{ i }}_conf_pensao"
-                     {% if processos_info[semana][i] and processos_info[semana][i].conf_pensao %}checked{% endif %}>
-            </td>
-            <td class="border px-2 text-center">
-              <input type="checkbox"
-                     name="{{ semana }}_{{ i }}_diligencia"
-                     {% if processos_info[semana][i] and processos_info[semana][i].diligencia %}checked{% endif %}>
-            </td>
-            <td class="border px-2 text-center">
-              <input type="checkbox"
-                     name="{{ semana }}_{{ i }}_outros"
-                     {% if processos_info[semana][i] and processos_info[semana][i].outros %}checked{% endif %}>
-            </td>
-            <td class="border px-2">
-              <input type="text"
-                     name="{{ semana }}_{{ i }}_setor"
-                     class="w-full border p-1"
-                     value="{{ processos_info[semana][i].setor if processos_info[semana][i] else '' }}">
-            </td>
-            <td class="border px-2">
-              <input type="text"
-                     name="{{ semana }}_{{ i }}_obs"
-                     class="w-full border p-1"
-                     value="{{ processos_info[semana][i].observacao if processos_info[semana][i] else '' }}">
+            <td>
+              <input type="text" name="{{ semana }}_{{ i }}_obs"
+                     value="{{ processos_info[semana][i].observacao if processos_info[semana][i] else '' }}"
+                     placeholder="Obs." style="min-width:120px;">
             </td>
           </tr>
           {% endfor %}
         </tbody>
       </table>
-      <div class="mt-4 text-right">
-        <button type="submit"
-                class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
-          Salvar Produção
-        </button>
-      </div>
     </div>
-    {% endfor %}
-  </form>
-  {% endif %}
-</div>
+    <div style="margin-top:12px; text-align:right;">
+      <button type="submit" class="btn btn-primary btn-sm">
+        <i class="ri-save-line"></i> Salvar Produção
+      </button>
+    </div>
+  </div>
+  {% endfor %}
+</form>
+{% endif %}
 {% endblock %}
