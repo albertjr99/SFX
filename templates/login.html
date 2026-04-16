@@ -1,72 +1,332 @@
-<!-- login.html -->
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
   <meta charset="UTF-8">
-  <title>Login - Sistema de Produção</title>
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-  <script>
-    function toggleModal(id) {
-      const modal = document.getElementById(id);
-      modal.classList.toggle('hidden');
+  <title>IPAJM — Acesso ao Sistema</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --green-950: #052e16;
+      --green-900: #14532d;
+      --green-800: #166534;
+      --green-700: #15803d;
+      --green-600: #16a34a;
+      --green-400: #4ade80;
     }
-  </script>
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      min-height: 100vh; display: flex;
+      background: #f0fdf4;
+      overflow: hidden;
+    }
+
+    /* ── LEFT PANEL ── */
+    .left-panel {
+      width: 48%; min-height: 100vh;
+      background: linear-gradient(155deg, var(--green-950) 0%, var(--green-800) 60%, var(--green-600) 100%);
+      display: flex; flex-direction: column;
+      justify-content: space-between;
+      padding: 48px 52px;
+      position: relative; overflow: hidden;
+    }
+    .left-panel::before {
+      content: '';
+      position: absolute; top: -120px; right: -120px;
+      width: 480px; height: 480px; border-radius: 50%;
+      background: rgba(255,255,255,.04);
+    }
+    .left-panel::after {
+      content: '';
+      position: absolute; bottom: -80px; left: -60px;
+      width: 320px; height: 320px; border-radius: 50%;
+      background: rgba(255,255,255,.03);
+    }
+    .panel-logo { position: relative; z-index: 2; }
+    .panel-logo img {
+      height: 72px; width: auto;
+      filter: brightness(0) invert(1); opacity: .95;
+    }
+    .panel-content { position: relative; z-index: 2; }
+    .panel-content h1 {
+      font-size: 34px; font-weight: 800; color: #fff;
+      line-height: 1.15; letter-spacing: -.03em; margin-bottom: 14px;
+    }
+    .panel-content h1 span { color: var(--green-400); }
+    .panel-content p {
+      font-size: 14px; color: rgba(255,255,255,.65); line-height: 1.7; max-width: 360px;
+    }
+    .panel-stats {
+      display: flex; gap: 20px; position: relative; z-index: 2;
+    }
+    .panel-stat {
+      background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.12);
+      border-radius: 12px; padding: 14px 18px; flex: 1;
+    }
+    .panel-stat .val {
+      font-size: 22px; font-weight: 800; color: var(--green-400); line-height: 1;
+    }
+    .panel-stat .lbl {
+      font-size: 10.5px; color: rgba(255,255,255,.5); margin-top: 4px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em;
+    }
+
+    /* ── RIGHT PANEL ── */
+    .right-panel {
+      flex: 1; display: flex; align-items: center; justify-content: center;
+      padding: 40px;
+      background: #fff;
+    }
+    .login-box { width: 100%; max-width: 380px; }
+    .login-box h2 {
+      font-size: 24px; font-weight: 800; color: #0f172a;
+      letter-spacing: -.02em; margin-bottom: 6px;
+    }
+    .login-box .sub {
+      font-size: 13px; color: #64748b; margin-bottom: 32px;
+    }
+
+    .form-group { margin-bottom: 18px; }
+    .form-label {
+      display: block; font-size: 11.5px; font-weight: 700;
+      color: #475569; margin-bottom: 6px;
+      text-transform: uppercase; letter-spacing: .06em;
+    }
+    .input-wrap { position: relative; }
+    .input-wrap i {
+      position: absolute; left: 13px; top: 50%; transform: translateY(-50%);
+      color: #94a3b8; font-size: 16px; pointer-events: none;
+    }
+    .input-wrap input {
+      width: 100%; padding: 11px 12px 11px 38px;
+      border: 1.5px solid #e2e8f0; border-radius: 10px;
+      font-size: 14px; font-family: inherit; color: #1e293b;
+      transition: all .18s; background: #f8fafc; outline: none;
+    }
+    .input-wrap input:focus {
+      border-color: var(--green-600); background: #fff;
+      box-shadow: 0 0 0 3px rgba(22,163,74,.12);
+    }
+
+    .btn-login {
+      width: 100%; padding: 13px;
+      background: linear-gradient(135deg, var(--green-700), var(--green-600));
+      color: #fff; border: none; border-radius: 10px;
+      font-size: 14px; font-weight: 700; font-family: inherit;
+      cursor: pointer; transition: all .2s; letter-spacing: .01em;
+      margin-top: 8px;
+    }
+    .btn-login:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(21,128,61,.35);
+    }
+
+    .divider {
+      display: flex; align-items: center; gap: 12px;
+      margin: 22px 0; color: #cbd5e1; font-size: 11px;
+    }
+    .divider::before, .divider::after {
+      content: ''; flex: 1; height: 1px; background: #e2e8f0;
+    }
+
+    .links-row {
+      display: flex; justify-content: center; gap: 20px;
+    }
+    .links-row a {
+      font-size: 12.5px; font-weight: 600; color: var(--green-700);
+      text-decoration: none; transition: color .15s;
+    }
+    .links-row a:hover { color: var(--green-900); }
+
+    /* ── MODALS ── */
+    .modal-backdrop {
+      position: fixed; inset: 0; background: rgba(0,0,0,.5);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 999; opacity: 0; pointer-events: none; transition: opacity .2s;
+    }
+    .modal-backdrop.open { opacity: 1; pointer-events: all; }
+    .modal {
+      background: #fff; border-radius: 16px; padding: 32px;
+      width: 100%; max-width: 420px;
+      box-shadow: 0 24px 64px rgba(0,0,0,.2);
+      transform: scale(.95); transition: transform .2s;
+    }
+    .modal-backdrop.open .modal { transform: scale(1); }
+    .modal h3 {
+      font-size: 18px; font-weight: 800; color: #0f172a; margin-bottom: 20px;
+    }
+    .modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+    .btn-cancel {
+      padding: 9px 18px; border: 1.5px solid #e2e8f0; border-radius: 8px;
+      background: #fff; font-size: 13px; font-weight: 600; cursor: pointer;
+      font-family: inherit; color: #64748b;
+    }
+    .btn-save {
+      padding: 9px 18px; border: none; border-radius: 8px;
+      background: var(--green-700); color: #fff;
+      font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit;
+    }
+    .btn-save:hover { background: var(--green-800); }
+
+    .contact-item {
+      display: flex; align-items: flex-start; gap: 12px;
+      padding: 12px 0; border-bottom: 1px solid #f1f5f9;
+    }
+    .contact-item:last-child { border-bottom: none; }
+    .contact-avatar {
+      width: 36px; height: 36px; border-radius: 8px; flex-shrink: 0;
+      background: linear-gradient(135deg, var(--green-700), var(--green-500));
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-size: 12px; font-weight: 700;
+    }
+    .contact-info strong { display: block; font-size: 13px; color: #1e293b; font-weight: 700; }
+    .contact-info span { font-size: 12px; color: #64748b; }
+
+    .alert-error {
+      background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px;
+      padding: 10px 14px; margin-bottom: 16px;
+      font-size: 13px; color: #b91c1c; display: flex; align-items: center; gap: 8px;
+    }
+
+    @media (max-width: 768px) {
+      .left-panel { display: none; }
+      .right-panel { padding: 24px; }
+    }
+  </style>
 </head>
-<body class="bg-gray-100 flex items-center justify-center min-h-screen">
-  <div class="bg-white p-8 rounded shadow-md w-full max-w-md">
-    <h2 class="text-2xl font-bold mb-6 text-center">Login</h2>
-    <form method="post" action="/login" class="space-y-4">
-      <div>
-        <label class="block text-sm font-medium text-gray-700">Nome</label>
-        <input type="text" name="nome" required placeholder="Digite seu nome" class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm">
+<body>
+
+  <!-- LEFT -->
+  <div class="left-panel">
+    <div class="panel-logo">
+      <img src="{{ url_for('static', filename='logo-ipajm.png') }}" alt="IPAJM"
+           onerror="this.outerHTML='<div style=\'color:white;font-size:28px;font-weight:800;letter-spacing:-.02em\'>IPAJM</div>'">
+    </div>
+    <div class="panel-content">
+      <h1>Sistema de <span>Controle</span><br>de Produção</h1>
+      <p>Plataforma integrada de acompanhamento e gestão da produção da Subgerência de Fixação do IPAJM.</p>
+    </div>
+    <div class="panel-stats">
+      <div class="panel-stat">
+        <div class="val">STC</div>
+        <div class="lbl">Subgerência</div>
       </div>
-      <div>
-        <label class="block text-sm font-medium text-gray-700">Senha</label>
-        <input type="password" name="senha" required class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm">
+      <div class="panel-stat">
+        <div class="val">ES</div>
+        <div class="lbl">Espírito Santo</div>
       </div>
-      <div>
-        <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700">Entrar</button>
+      <div class="panel-stat">
+        <div class="val">Gov</div>
+        <div class="lbl">Institucional</div>
       </div>
-    </form>
-    <div class="mt-4 text-center">
-      <a href="#" onclick="toggleModal('modal-primeiro-acesso')" class="text-blue-600 hover:underline">Primeiro Acesso</a> |
-      <a href="#" onclick="toggleModal('modal-contato')" class="text-blue-600 hover:underline">Falar com os administradores do sistema</a>
+    </div>
+  </div>
+
+  <!-- RIGHT -->
+  <div class="right-panel">
+    <div class="login-box">
+      <h2>Bem-vindo de volta</h2>
+      <p class="sub">Informe suas credenciais para acessar o sistema</p>
+
+      {% with messages = get_flashed_messages() %}
+        {% if messages %}
+          {% for msg in messages %}
+            <div class="alert-error"><i class="ri-error-warning-line"></i> {{ msg }}</div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      <form method="post" action="/login">
+        <div class="form-group">
+          <label class="form-label">Nome de usuário</label>
+          <div class="input-wrap">
+            <i class="ri-user-3-line"></i>
+            <input type="text" name="nome" required placeholder="Digite seu nome" autocomplete="username">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Senha</label>
+          <div class="input-wrap">
+            <i class="ri-lock-password-line"></i>
+            <input type="password" name="senha" required placeholder="••••••••" autocomplete="current-password">
+          </div>
+        </div>
+        <button type="submit" class="btn-login">
+          Entrar no Sistema
+        </button>
+      </form>
+
+      <div class="divider">ou</div>
+
+      <div class="links-row">
+        <a href="#" onclick="openModal('modal-primeiro-acesso')">
+          <i class="ri-key-2-line"></i> Primeiro Acesso
+        </a>
+        <a href="#" onclick="openModal('modal-contato')">
+          <i class="ri-customer-service-2-line"></i> Suporte
+        </a>
+      </div>
     </div>
   </div>
 
   <!-- Modal Primeiro Acesso -->
-  <div id="modal-primeiro-acesso" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
-    <div class="bg-white p-6 rounded shadow-md w-full max-w-md">
-      <h3 class="text-xl font-bold mb-4">Primeiro Acesso</h3>
-      <form method="post" action="/primeiro-acesso" class="space-y-4">
-        <div>
-          <label class="block text-sm font-medium text-gray-700">Nome</label>
-          <input type="text" name="nome" placeholder="Digite seu nome" required class="form-input">
+  <div class="modal-backdrop" id="modal-primeiro-acesso">
+    <div class="modal">
+      <h3><i class="ri-key-2-line" style="color:#15803d"></i> Primeiro Acesso</h3>
+      <form method="post" action="/primeiro-acesso">
+        <div class="form-group">
+          <label class="form-label">Nome</label>
+          <div class="input-wrap">
+            <i class="ri-user-3-line"></i>
+            <input type="text" name="nome" required placeholder="Digite seu nome">
+          </div>
         </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700">Nova Senha</label>
-          <input type="password" name="nova_senha" required class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md">
+        <div class="form-group">
+          <label class="form-label">Nova Senha</label>
+          <div class="input-wrap">
+            <i class="ri-lock-password-line"></i>
+            <input type="password" name="nova_senha" required placeholder="Defina sua senha">
+          </div>
         </div>
-        <div class="flex justify-end space-x-2">
-          <button type="button" onclick="toggleModal('modal-primeiro-acesso')" class="px-4 py-2 border rounded">Cancelar</button>
-          <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Salvar</button>
+        <div class="modal-footer">
+          <button type="button" class="btn-cancel" onclick="closeModal('modal-primeiro-acesso')">Cancelar</button>
+          <button type="submit" class="btn-save">Salvar senha</button>
         </div>
       </form>
     </div>
   </div>
 
   <!-- Modal Contato -->
-  <div id="modal-contato" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
-    <div class="bg-white p-6 rounded shadow-md w-full max-w-md">
-      <h3 class="text-xl font-bold mb-4">Contatos dos Administradores</h3>
-      <ul class="space-y-2">
-        <li><strong>Albert Iglésia</strong> - (61) 9 9184-1727 / albert.junior@ipajm.es.gov.br</li>
-        <li><strong>Lucas Rodrigues</strong> - (27) 98807-5109 / lucas.rodrigues@ipajm.es.gov.br</li>
-      </ul>
-      <div class="mt-4 text-right">
-        <button onclick="toggleModal('modal-contato')" class="px-4 py-2 border rounded">Fechar</button>
+  <div class="modal-backdrop" id="modal-contato">
+    <div class="modal">
+      <h3><i class="ri-customer-service-2-line" style="color:#15803d"></i> Suporte &amp; Administradores</h3>
+      <div class="contact-item">
+        <div class="contact-avatar">AI</div>
+        <div class="contact-info">
+          <strong>Albert Iglésia</strong>
+          <span>(61) 9 9184-1727<br>albert.junior@ipajm.es.gov.br</span>
+        </div>
+      </div>
+      <div class="contact-item">
+        <div class="contact-avatar">LR</div>
+        <div class="contact-info">
+          <strong>Lucas Rodrigues</strong>
+          <span>(27) 98807-5109<br>lucas.rodrigues@ipajm.es.gov.br</span>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-save" onclick="closeModal('modal-contato')">Fechar</button>
       </div>
     </div>
   </div>
+
+  <script>
+    function openModal(id) { document.getElementById(id).classList.add('open'); }
+    function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+    document.querySelectorAll('.modal-backdrop').forEach(m => {
+      m.addEventListener('click', e => { if(e.target===m) m.classList.remove('open'); });
+    });
+  </script>
 </body>
 </html>
