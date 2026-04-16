@@ -1,106 +1,95 @@
 {% extends 'base.html' %}
+{% block title %}Acompanhamento {{ analista.nome if analista else '' }} — IPAJM{% endblock %}
+{% block topbar_title %}Acompanhamento Individual{% endblock %}
+
+{% block head_styles %}
+@media print {
+  body * { visibility:hidden; }
+  .print-container, .print-container * { visibility:visible; }
+  .print-container { position:absolute; top:0; left:0; width:100%; }
+}
+{% endblock %}
 
 {% block content %}
-<div class="p-6 space-y-6">
-
-  <style>
-    @media print {
-      /* Esconde tudo */
-      body * { visibility: hidden; }
-      /* Revela apenas o container de impressão */
-      .print-container, .print-container * { visibility: visible; }
-      .print-container {
-        position: absolute;
-        top: 0; left: 0;
-        width: 100%;
-      }
-      /* Também esconde o botão de imprimir que fica dentro de nao-imprimir */
-      .nao-imprimir { display: none !important; }
-    }
-  </style>
-
-  <div class="flex justify-between items-center mb-4 nao-imprimir">
-    <h1 class="text-2xl font-bold">
-      Acompanhamento de {{ analista.nome if analista else '' }} – {{ mes }}
-    </h1>
-    <div class="flex gap-2">
-      <a href="{{ url_for('painel_gerente') }}"
-         class="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700">
-        ← Voltar
+<div class="page-header">
+  <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px;">
+    <div>
+      <h1>{{ analista.nome if analista else 'Analista' }} &mdash; {{ mes }}</h1>
+      <p>Acompanhamento de produção individual por período</p>
+    </div>
+    <div style="display:flex; gap:8px;" class="nao-imprimir">
+      <a href="{{ url_for('painel_gerente') }}" class="btn btn-secondary">
+        <i class="ri-arrow-left-line"></i> Voltar
       </a>
-      <button onclick="window.print()"
-              class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 nao-imprimir">
-        Imprimir
+      <button onclick="window.print()" class="btn btn-primary">
+        <i class="ri-printer-line"></i> Imprimir
       </button>
     </div>
   </div>
+</div>
 
-  <!-- filtros (não impressos) -->
-  <form method="get" class="flex flex-wrap gap-4 items-end nao-imprimir">
-    <input type="hidden" name="analista_id" value="{{ analista.id if analista else '' }}">
-    <div>
-      <label class="block font-semibold mb-1">Visão</label>
-      <select name="view" class="border rounded px-2 py-1">
-        <option value="semana" {% if view=='semana' %}selected{% endif %}>Semana</option>
-        <option value="mes"    {% if view=='mes'    %}selected{% endif %}>Mês</option>
-        <option value="ano"    {% if view=='ano'    %}selected{% endif %}>Ano</option>
-      </select>
-    </div>
-    <div>
-      <label class="block font-semibold mb-1">Mês</label>
-      <select name="mes"
-              class="border rounded px-2 py-1"
-              {% if view=='ano' %}disabled{% endif %}>
-        {% for m in meses %}
-          <option value="{{ m }}" {% if m==mes %}selected{% endif %}>{{ m }}</option>
-        {% endfor %}
-      </select>
-    </div>
-    {% if view=='semana' %}
+<!-- Filters -->
+<div class="card nao-imprimir" style="margin-bottom:24px;">
+  <div class="card-header">
+    <i class="ri-filter-3-line" style="color:#16a34a;font-size:17px;"></i>
+    <h2>Filtros de Período</h2>
+  </div>
+  <div class="card-body">
+    <form method="get" style="display:flex; flex-wrap:wrap; gap:14px; align-items:end;">
+      <input type="hidden" name="analista_id" value="{{ analista.id if analista else '' }}">
       <div>
-        <label class="block font-semibold mb-1">Semana</label>
-        <select name="semana" class="border rounded px-2 py-1">
+        <label class="form-label">Visão</label>
+        <select name="view" class="form-select">
+          <option value="semana" {% if view=='semana' %}selected{% endif %}>Semana</option>
+          <option value="mes"    {% if view=='mes'    %}selected{% endif %}>Mês</option>
+          <option value="ano"    {% if view=='ano'    %}selected{% endif %}>Ano</option>
+        </select>
+      </div>
+      <div>
+        <label class="form-label">Mês</label>
+        <select name="mes" class="form-select" {% if view=='ano' %}disabled{% endif %}>
+          {% for m in meses %}
+            <option value="{{ m }}" {% if m==mes %}selected{% endif %}>{{ m }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      {% if view=='semana' %}
+      <div>
+        <label class="form-label">Semana</label>
+        <select name="semana" class="form-select">
           {% for s in semanas %}
             <option value="{{ s }}" {% if s==selected_semana %}selected{% endif %}>{{ s }}</option>
           {% endfor %}
         </select>
       </div>
-    {% endif %}
-    <div>
-      <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">
-        Filtrar
+      {% endif %}
+      <button type="submit" class="btn btn-primary">
+        <i class="ri-search-line"></i> Filtrar
       </button>
+    </form>
+  </div>
+</div>
+
+<div class="print-container">
+  <!-- Stats Grid -->
+  <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); gap:12px; margin-bottom:24px;">
+    {% for c in campos %}
+    <div class="stat-card" style="text-align:center;">
+      <div class="stat-label">{{ c.replace('_',' ')|title }}</div>
+      <div class="stat-value" style="font-size:24px; color:#166534;">{{ counts[c] }}</div>
     </div>
-  </form>
+    {% endfor %}
+  </div>
 
-  <!-- área que será impressa -->
-  <div class="print-container space-y-6">
-
-    <!-- tabela de contagem -->
-    <div class="overflow-x-auto bg-white rounded shadow">
-      <table class="min-w-full border text-sm">
-        <thead class="bg-blue-600 text-white">
-          <tr>
-            {% for c in campos %}
-              <th class="border px-2 py-1">{{ c.replace('_',' ')|title }}</th>
-            {% endfor %}
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            {% for c in campos %}
-              <td class="border px-2 py-1 text-center">{{ counts[c] }}</td>
-            {% endfor %}
-          </tr>
-        </tbody>
-      </table>
+  <!-- Chart -->
+  <div class="card">
+    <div class="card-header">
+      <i class="ri-bar-chart-2-line" style="color:#16a34a;font-size:17px;"></i>
+      <h2>Distribuição por Atividade</h2>
     </div>
-
-    <!-- gráfico -->
-    <div class="bg-white rounded shadow p-4">
-      <canvas id="chartAnalista"></canvas>
+    <div class="card-body">
+      <canvas id="chartAnalista" height="80"></canvas>
     </div>
-
   </div>
 </div>
 {% endblock %}
@@ -112,24 +101,31 @@
     const campos    = {{ campos|tojson }};
     const countsMap = {{ counts|tojson }};
     const data      = campos.map(c => countsMap[c] || 0);
-    const ctx       = document.getElementById('chartAnalista').getContext('2d');
-
-    new Chart(ctx, {
+    const max       = Math.max(...data);
+    const colors    = data.map(v => {
+      const p = max > 0 ? v/max : 0;
+      return `rgba(22,163,74,${0.3 + p*0.7})`;
+    });
+    new Chart(document.getElementById('chartAnalista').getContext('2d'), {
       type: 'bar',
       data: {
         labels: campos.map(c => c.replace(/_/g,' ')),
         datasets: [{
-          label: 'Contagem de Processos',
-          data: data,
-          backgroundColor: 'rgba(54,162,235,0.6)',
-          borderColor: 'rgba(54,162,235,1)',
-          borderWidth: 1
+          label: 'Processos',
+          data,
+          backgroundColor: colors,
+          borderColor: '#15803d',
+          borderWidth: 1.5,
+          borderRadius: 6,
         }]
       },
       options: {
         responsive: true,
         plugins: { legend: { display: false } },
-        scales: { y: { beginAtZero: true } }
+        scales: {
+          y: { beginAtZero: true, grid: { color: '#f1f5f9' } },
+          x: { grid: { display: false } }
+        }
       }
     });
   })();
