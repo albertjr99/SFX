@@ -1,155 +1,181 @@
 {% extends 'base.html' %}
-{% block content %}
+{% block title %}Meu Desempenho — IPAJM{% endblock %}
+{% block topbar_title %}Meu Desempenho{% endblock %}
 
-<style>
+{% block head_styles %}
 @media print {
-  body * { visibility: hidden; }
-  .relatorio-print, .relatorio-print * { visibility: visible; }
-  .relatorio-print { position: absolute; top: 0; left: 0; width: 100%; }
+  body * { visibility:hidden; }
+  .relatorio-print, .relatorio-print * { visibility:visible; }
+  .relatorio-print { position:absolute; top:0; left:0; width:100%; }
 }
-</style>
+{% endblock %}
 
-<div class="p-6 space-y-6">
-
-  <div class="flex justify-between items-center mb-6">
-    <h1 class="text-2xl font-bold">Estatísticas de Produção - {{ usuario.nome }}</h1>
-    <div class="flex space-x-2">
-      <a href="{{ url_for('registrar_producao') }}"
-         class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">
-        ← Voltar ao Painel Principal
+{% block content %}
+<div class="page-header">
+  <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px;">
+    <div>
+      <h1>Estatísticas de Produção</h1>
+      <p>{{ usuario.nome }} — visão pessoal de desempenho</p>
+    </div>
+    <div style="display:flex; gap:8px;" class="nao-imprimir">
+      <a href="{{ url_for('registrar_producao') }}" class="btn btn-secondary">
+        <i class="ri-arrow-left-line"></i> Voltar
       </a>
-      <button onclick="window.print()" class="bg-gray-700 text-white px-4 py-2 rounded hover:bg-gray-800">
-        Imprimir
+      <button onclick="window.print()" class="btn btn-secondary">
+        <i class="ri-printer-line"></i> Imprimir
       </button>
     </div>
   </div>
-
-  <!-- filtro de mês e semana -->
-  <form method="get" class="flex gap-4 items-end mb-6">
-    <div>
-      <label class="block font-semibold mb-1">Mês</label>
-      <select name="mes" class="border rounded px-2 py-1">
-        {% for m in meses %}
-          <option value="{{ m }}" {% if m==selected_mes %}selected{% endif %}>{{ m }}</option>
-        {% endfor %}
-      </select>
-    </div>
-    <div>
-      <label class="block font-semibold mb-1">Semana</label>
-      <select name="semana" class="border rounded px-2 py-1">
-        <option value="Mês inteiro" {% if selected_semana=='Mês inteiro' %}selected{% endif %}>Mês inteiro</option>
-        {% for s in semanas %}
-          <option value="{{ s }}" {% if s==selected_semana %}selected{% endif %}>{{ s }}</option>
-        {% endfor %}
-      </select>
-    </div>
-    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Filtrar</button>
-  </form>
-
-  <div class="relatorio-print">
-    <!-- progresso mensal -->
-    <!-- Contagem Mensal (sem meta) -->
-<div class="bg-white rounded-lg shadow p-4">
-  <h2 class="font-semibold mb-2">Contagem Mensal</h2>
-  <p class="text-sm">{{ total_feito }} processos</p>
 </div>
 
-    </div>
-
-    <!-- gráfico -->
-    <div class="bg-white p-4 rounded shadow mb-6">
-      <h2 class="text-xl font-semibold mb-4">Gráfico de Produção</h2>
-      <canvas id="graficoProducao"></canvas>
-    </div>
-
-    <!-- contagem -->
-    <div class="bg-white p-4 rounded shadow">
-      <h2 class="text-xl font-semibold mb-4">Contagem de Produção</h2>
-      {% if selected_semana=='Mês inteiro' %}
-        <div class="overflow-x-auto">
-          <table class="min-w-full border text-sm">
-            <thead class="bg-blue-600 text-white">
-              <tr>
-                {% for c in campos %}
-                  <th class="border px-2 py-1">{{ c.replace('_',' ')|title }}</th>
-                {% endfor %}
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                {% for c in campos %}
-                  <td class="border px-2 py-1 text-center">{{ total_mes[c] }}</td>
-                {% endfor %}
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      {% else %}
-        <h3 class="font-semibold mb-2">Semana: {{ selected_semana }}</h3>
-        <div class="overflow-x-auto mb-4">
-          <table class="min-w-full border text-sm">
-            <thead class="bg-blue-600 text-white">
-              <tr>
-                {% for c in campos %}
-                  <th class="border px-2 py-1">{{ c.replace('_',' ')|title }}</th>
-                {% endfor %}
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                {% for c in campos %}
-                  <td class="border px-2 py-1 text-center">{{ totais[selected_semana][c] }}</td>
-                {% endfor %}
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      {% endif %}
-    </div>
+<!-- Filters -->
+<div class="card nao-imprimir" style="margin-bottom:24px;">
+  <div class="card-header">
+    <i class="ri-calendar-line" style="color:#16a34a;font-size:17px;"></i>
+    <h2>Período de Análise</h2>
+  </div>
+  <div class="card-body">
+    <form method="get" style="display:flex; flex-wrap:wrap; gap:14px; align-items:end;">
+      <div>
+        <label class="form-label">Mês</label>
+        <select name="mes" class="form-select">
+          {% for m in meses %}
+            <option value="{{ m }}" {% if m==selected_mes %}selected{% endif %}>{{ m }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label class="form-label">Semana</label>
+        <select name="semana" class="form-select">
+          <option value="Mês inteiro" {% if selected_semana=='Mês inteiro' %}selected{% endif %}>Mês inteiro</option>
+          {% for s in semanas %}
+            <option value="{{ s }}" {% if s==selected_semana %}selected{% endif %}>{{ s }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <button type="submit" class="btn btn-primary">
+        <i class="ri-search-line"></i> Filtrar
+      </button>
+    </form>
   </div>
 </div>
 
-<!-- Chart.js -->
+<div class="relatorio-print">
+  <!-- Hero stat -->
+  <div style="background:linear-gradient(135deg,#052e16,#166534); border-radius:14px; padding:24px 28px; margin-bottom:24px; display:flex; align-items:center; gap:24px;">
+    <div>
+      <div style="color:rgba(255,255,255,.6); font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; margin-bottom:6px;">Total de Processos</div>
+      <div style="color:#4ade80; font-size:52px; font-weight:900; line-height:1; letter-spacing:-.04em;">{{ total_feito }}</div>
+      <div style="color:rgba(255,255,255,.5); font-size:13px; margin-top:4px;">{{ selected_semana }} &mdash; {{ selected_mes }}</div>
+    </div>
+    <div style="margin-left:auto; opacity:.15;">
+      <i class="ri-file-list-3-line" style="font-size:80px; color:white;"></i>
+    </div>
+  </div>
+
+  <!-- Mini stats -->
+  <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(110px,1fr)); gap:10px; margin-bottom:24px;">
+    {% if selected_semana=='Mês inteiro' %}
+      {% for c in campos %}
+      <div class="stat-card" style="text-align:center; padding:12px;">
+        <div class="stat-label" style="font-size:10px;">{{ c.replace('_',' ')|title }}</div>
+        <div style="font-size:22px; font-weight:800; color:#166534;">{{ total_mes[c] }}</div>
+      </div>
+      {% endfor %}
+    {% else %}
+      {% for c in campos %}
+      <div class="stat-card" style="text-align:center; padding:12px;">
+        <div class="stat-label" style="font-size:10px;">{{ c.replace('_',' ')|title }}</div>
+        <div style="font-size:22px; font-weight:800; color:#166534;">{{ totais[selected_semana][c] }}</div>
+      </div>
+      {% endfor %}
+    {% endif %}
+  </div>
+
+  <!-- Chart -->
+  <div class="card" style="margin-bottom:24px;">
+    <div class="card-header">
+      <i class="ri-bar-chart-2-line" style="color:#16a34a;font-size:17px;"></i>
+      <h2>Distribuição por Atividade</h2>
+    </div>
+    <div class="card-body">
+      <canvas id="graficoProducao" height="90"></canvas>
+    </div>
+  </div>
+
+  <!-- Detail Table -->
+  <div class="card">
+    <div class="card-header">
+      <i class="ri-table-2" style="color:#16a34a;font-size:17px;"></i>
+      <h2>Detalhamento</h2>
+      {% if selected_semana != 'Mês inteiro' %}
+        <span class="badge badge-blue" style="margin-left:auto;">{{ selected_semana }}</span>
+      {% endif %}
+    </div>
+    <div style="overflow-x:auto;">
+      <table class="data-table">
+        <thead>
+          <tr>
+            {% for c in campos %}
+              <th>{{ c.replace('_',' ')|title }}</th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            {% if selected_semana=='Mês inteiro' %}
+              {% for c in campos %}
+                <td><strong>{{ total_mes[c] }}</strong></td>
+              {% endfor %}
+            {% else %}
+              {% for c in campos %}
+                <td><strong>{{ totais[selected_semana][c] }}</strong></td>
+              {% endfor %}
+            {% endif %}
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-  const ctx = document.getElementById('graficoProducao').getContext('2d');
   const campos = {{ campos|tojson }};
   const totais = {{ totais|tojson }};
   const totalMes = {{ total_mes|tojson }};
   const selectedSemana = "{{ selected_semana }}";
 
-  let labels = campos;
-  let datasets = [];
+  const vals = selectedSemana === 'Mês inteiro'
+    ? campos.map(c => totalMes[c])
+    : campos.map(c => totais[selectedSemana]?.[c] ?? 0);
 
-  if (selectedSemana === 'Mês inteiro') {
-    datasets.push({
-      label: 'Mês inteiro',
-      data: campos.map(c => totalMes[c]),
-      backgroundColor: 'rgba(54,162,235,0.6)',
-      borderColor: 'rgba(54,162,235,1)',
-      borderWidth: 1
-    });
-  } else {
-    datasets.push({
-      label: selectedSemana,
-      data: campos.map(c => totais[selectedSemana][c]),
-      backgroundColor: 'rgba(54,162,235,0.6)',
-      borderColor: 'rgba(54,162,235,1)',
-      borderWidth: 1
-    });
-  }
+  const max = Math.max(...vals, 1);
+  const colors = vals.map(v => `rgba(22,163,74,${0.3 + (v/max)*0.7})`);
 
-  new Chart(ctx, {
+  new Chart(document.getElementById('graficoProducao').getContext('2d'), {
     type: 'bar',
-    data: { labels, datasets },
+    data: {
+      labels: campos.map(c => c.replace(/_/g,' ')),
+      datasets: [{
+        label: 'Processos',
+        data: vals,
+        backgroundColor: colors,
+        borderColor: '#15803d',
+        borderWidth: 1.5,
+        borderRadius: 6,
+      }]
+    },
     options: {
       responsive: true,
+      plugins: { legend: { display: false } },
       scales: {
-        x: { beginAtZero: true },
-        y: { beginAtZero: true }
+        y: { beginAtZero: true, grid: { color: '#f1f5f9' }, ticks: { precision: 0 } },
+        x: { grid: { display: false } }
       }
     }
   });
 </script>
-
 {% endblock %}
