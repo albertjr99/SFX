@@ -11,5 +11,5 @@ git pull --ff-only
 source "$HOME/.virtualenvs/sfx/bin/activate"
 pip install --quiet -r requirements.txt
 flask --app wsgi sfx preparar
-touch "/var/www/${USER}_pythonanywhere_com_wsgi.py"   # recarrega o site
+touch "/var/www/${USER,,}_pythonanywhere_com_wsgi.py"   # recarrega o site (domínio sempre em minúsculas)
 echo "Atualizado. Backup do banco em ~/backups/."

@@ -49,6 +49,6 @@ cat <<FIM
     o conteúdo de:  $PROJ/deploy/pythonanywhere_wsgi.py
  5. Ligue "Force HTTPS" e clique no botão verde "Reload".
 
- Endereço: https://$USER.pythonanywhere.com
+ Endereço: https://${USER,,}.pythonanywhere.com
 ============================================================
 FIM
