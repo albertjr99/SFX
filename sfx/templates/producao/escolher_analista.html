@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% block title %}Produção da equipe{% endblock %}
+{% block content %}
+<div class="cabecalho">
+  <div>
+    <h1>Produção da equipe</h1>
+    <p>Escolha de quem você vai lançar ou corrigir a produção de {{ periodo.rotulo|lower }}.</p>
+  </div>
+</div>
+
+<div class="grade-2">
+  {% for modalidade, rotulo in C.MODALIDADES.items() %}
+  <section class="painel">
+    <div class="painel-titulo"><h2>{{ rotulo }}</h2></div>
+    <div class="painel-corpo">
+      {% set grupo = analistas|selectattr('modalidade', 'equalto', modalidade)|list %}
+      {% if grupo %}
+        <div class="pilha" style="--gap:8px">
+        {% for a in grupo %}
+          <a class="btn" style="width:100%;justify-content:flex-start" href="{{ url_for('producao.equipe', analista_id=a.id, **periodo.args()) }}">
+            <span class="avatar" style="width:28px;height:28px;font-size:12px;background:var(--pasta-clara);color:var(--pasta-escura)">{{ a.iniciais }}</span>{{ a.nome }}
+          </a>
+        {% endfor %}
+        </div>
+      {% else %}
+        <p class="dica">Nenhum analista nesta modalidade.</p>
+      {% endif %}
+    </div>
+  </section>
+  {% endfor %}
+</div>
+{% endblock %}

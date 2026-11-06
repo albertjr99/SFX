@@ -1,0 +1,13 @@
+{% with mensagens = get_flashed_messages(with_categories=true) %}
+  {% if mensagens %}
+  <div class="avisos" role="status" aria-live="polite">
+    {% for categoria, texto in mensagens %}
+      {% set cat = {'success': 'sucesso', 'error': 'erro', 'message': 'info'}.get(categoria, categoria) %}
+      <div class="aviso aviso-{{ cat }}">
+        <span>{{ texto }}</span>
+        <button type="button" data-fechar-aviso aria-label="Fechar aviso">×</button>
+      </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+{% endwith %}

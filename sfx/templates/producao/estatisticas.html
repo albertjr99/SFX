@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+{% from 'partials/_macros.html' import icone, mes_nav, json_dados with context %}
+{% set proprio = alvo.id == current_user.id %}
+{% block title %}Números de {{ alvo.nome }}{% endblock %}
+{% block content %}
+<div class="cabecalho">
+  <div>
+    <h1>{{ 'Meus números' if proprio else 'Números de ' ~ alvo.nome }}</h1>
+    <p>{{ titulo }}{% if not proprio %} · {{ C.MODALIDADES.get(alvo.modalidade, '') }}{% endif %}</p>
+  </div>
+  <div class="cabecalho-acoes nao-imprimir">
+    {% if not proprio and current_user.edita_equipe %}
+      <a class="btn" href="{{ url_for('producao.equipe', analista_id=alvo.id, **periodo.args()) }}">{{ icone('grade') }}Abrir grade</a>
+      <a class="btn" href="{{ url_for('producao.pendencias', analista_id=alvo.id) }}">{{ icone('alerta') }}Pendências</a>
+    {% endif %}
+    <button type="button" class="btn" data-imprimir-pagina>{{ icone('imprimir') }}Imprimir</button>
+  </div>
+</div>
+
+<form method="get" class="linha-form nao-imprimir" style="margin-bottom:18px">
+  <div class="segmentos" role="group" aria-label="Período">
+    {% for v, r in [('semana', 'Semana'), ('mes', 'Mês'), ('ano', 'Ano')] %}
+      <a href="{{ url_for(endpoint, visao=v, **dict(periodo.args(), **extra_args)) }}" {% if visao == v %}aria-current="true"{% endif %}>{{ r }}</a>
+    {% endfor %}
+  </div>
+  {% if visao != 'ano' %}{{ mes_nav(endpoint, periodo, dict(extra_args, visao=visao)) }}{% else %}
+    <nav class="mes-nav" aria-label="Ano">
+      <a href="{{ url_for(endpoint, visao='ano', ano=periodo.ano - 1, mes=periodo.mes, **extra_args) }}" aria-label="Ano anterior">{{ icone('esquerda') }}</a>
+      <strong>{{ periodo.ano }}</strong>
+      <a href="{{ url_for(endpoint, visao='ano', ano=periodo.ano + 1, mes=periodo.mes, **extra_args) }}" aria-label="Próximo ano">{{ icone('direita') }}</a>
+    </nav>
+  {% endif %}
+  {% if visao == 'semana' %}
+    {% for k, v in extra_args.items() %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endfor %}
+    <input type="hidden" name="visao" value="semana"><input type="hidden" name="ano" value="{{ periodo.ano }}"><input type="hidden" name="mes" value="{{ periodo.mes }}">
+    <select name="semana" data-auto-enviar aria-label="Semana" style="width:auto">
+      {% for s in semanas %}<option value="{{ s }}" {% if s == semana %}selected{% endif %}>{{ s }}</option>{% endfor %}
+    </select>
+  {% endif %}
+</form>
+
+<dl class="placar" style="margin-bottom:18px">
+  <div><dt>Atividades</dt><dd>{{ total|numero }}</dd></div>
+  <div><dt>Processos distintos</dt><dd>{{ processos|numero }}</dd></div>
+  {% set maior = valores.items()|sort(attribute='1', reverse=true)|first %}
+  {% if maior and maior[1] %}<div><dt>Mais frequente</dt><dd style="font-size:1.15rem;padding-top:6px">{{ C.ROTULO_ATIVIDADE[maior[0]] }} <small>{{ maior[1] }}</small></dd></div>{% endif %}
+</dl>
+
+<div class="grade-2">
+  <section class="painel">
+    <div class="painel-titulo"><h2>Por atividade</h2><small>{{ titulo }}</small></div>
+    <div class="painel-corpo"><div class="grafico"><canvas data-grafico="atividades" aria-label="Gráfico por atividade" role="img"></canvas></div></div>
+  </section>
+  <section class="painel">
+    {% if visao == 'ano' %}
+      <div class="painel-titulo"><h2>Mês a mês</h2><small>{{ periodo.ano }}</small></div>
+      <div class="painel-corpo"><div class="grafico"><canvas data-grafico="meses" role="img" aria-label="Atividades por mês"></canvas></div></div>
+    {% else %}
+      <div class="painel-titulo"><h2>Semana a semana</h2><small>{{ periodo.rotulo }}</small></div>
+      <div class="painel-corpo"><div class="grafico"><canvas data-grafico="semanas" role="img" aria-label="Atividades por semana"></canvas></div></div>
+    {% endif %}
+  </section>
+</div>
+
+<section class="painel" style="margin-top:18px">
+  <div class="painel-titulo"><h2>{{ 'Contagem mensal' if visao == 'ano' else 'Contagem semanal' }}</h2></div>
+  <div class="painel-corpo tabela-envolta">
+    <table class="tabela">
+      <thead><tr><th>{{ 'Mês' if visao == 'ano' else 'Semana' }}</th>{% for a in C.ATIVIDADES %}<th class="num">{{ a.curto }}</th>{% endfor %}<th class="num">Total</th></tr></thead>
+      <tbody>
+        {% set linhas = serie_ano if visao == 'ano' else por_semana %}
+        {% for rotulo, vals in linhas.items() %}
+        <tr {% if visao == 'semana' and rotulo == semana %}class="destacada"{% endif %}>
+          <td>{{ rotulo }}</td>
+          {% for a in C.ATIVIDADES %}<td class="num {{ 'zero' if not vals[a.chave] }}">{{ vals[a.chave] }}</td>{% endfor %}
+          <td class="num"><strong>{{ vals.values()|sum }}</strong></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot><tr><td>Total</td>
+        {% for a in C.ATIVIDADES %}<td class="num">{{ linhas.values()|map(attribute=a.chave)|sum }}</td>{% endfor %}
+        <td class="num">{% set ns = namespace(t=0) %}{% for v in linhas.values() %}{% set ns.t = ns.t + v.values()|sum %}{% endfor %}{{ ns.t }}</td></tr></tfoot>
+    </table>
+  </div>
+</section>
+{{ json_dados('dados-grafico', grafico) }}
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='vendor/chart.umd.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/graficos.js') }}?v={{ versao }}"></script>
+{% endblock %}

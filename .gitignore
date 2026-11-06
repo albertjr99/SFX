@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+.coverage
+htmlcov/
+
+# Configuração local e segredos
+.env
+.flaskenv
+
+# Dados — o banco e planilhas contêm dados pessoais de segurados (LGPD)
+instance/
+*.db
+*.sqlite
+*.sqlite3
+data/
+uploads/
+*.xlsx
+*.xls
+backups/
+
+# Editores / SO
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini

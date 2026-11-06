@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% from 'partials/_macros.html' import icone, mes_nav with context %}
+{% block title %}Painel da equipe – {{ periodo.rotulo }}{% endblock %}
+{% block content %}
+<div class="cabecalho">
+  <div>
+    <h1>Painel da equipe</h1>
+    <p>Produção registrada pelos analistas em {{ periodo.rotulo|lower }}.</p>
+  </div>
+  <div class="cabecalho-acoes nao-imprimir">
+    {{ mes_nav('gestao.painel', periodo) }}
+    <button type="button" class="btn" data-imprimir-pagina>{{ icone('imprimir') }}Imprimir</button>
+  </div>
+</div>
+
+<dl class="placar" style="margin-bottom:18px">
+  <div><dt>Atividades da equipe</dt><dd>{{ total|numero }}</dd></div>
+  <div><dt>Processos distintos</dt><dd>{{ processos|numero }}</dd></div>
+  <div><dt>Analistas com registro</dt><dd>{{ ranking|selectattr('total')|list|length }} <small>de {{ ranking|length }}</small></dd></div>
+  <div><dt>Referência por analista</dt><dd>{{ referencia }} <small>{{ periodo.semanas|length }} semanas × 15</small></dd></div>
+</dl>
+
+<section class="painel">
+  <div class="painel-titulo"><h2>Por analista</h2><small>Ordenado pelo total de atividades</small></div>
+  <div class="painel-corpo tabela-envolta">
+    <table class="tabela">
+      <thead>
+        <tr>
+          <th>Analista</th>
+          {% for a in C.ATIVIDADES %}<th class="num" title="{{ a.rotulo }}">{{ a.curto }}</th>{% endfor %}
+          <th class="num">Total</th>
+          <th style="min-width:120px"><span class="sr-only">Proporção da referência</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in ranking %}
+        <tr>
+          <td style="white-space:nowrap"><a href="{{ url_for('gestao.analista', analista_id=r.usuario.id, **periodo.args()) }}"><strong>{{ r.usuario.nome }}</strong></a> <span class="dica">{{ C.MODALIDADES.get(r.usuario.modalidade, '') }}</span>
+            <div class="dica nao-imprimir"><a href="{{ url_for('producao.equipe', analista_id=r.usuario.id, **periodo.args()) }}">Grade</a> · <a href="{{ url_for('producao.pendencias', analista_id=r.usuario.id) }}">Pendências</a></div></td>
+          {% for a in C.ATIVIDADES %}<td class="num {{ 'zero' if not r.valores[a.chave] }}">{{ r.valores[a.chave] }}</td>{% endfor %}
+          <td class="num"><strong>{{ r.total }}</strong></td>
+          <td style="vertical-align:middle"><div class="barra" title="{{ r.total }} de {{ referencia }}"><span style="width:{{ [100, (r.total / referencia * 100) if referencia else 0]|min|round(1) }}%"></span></div></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="{{ C.ATIVIDADES|length + 3 }}" class="vazio-bloco">Nenhum analista ativo. Cadastre a equipe em <a href="{{ url_for('admin.usuarios') }}">Usuários</a>.</td></tr>
+        {% endfor %}
+      </tbody>
+      {% if ranking %}
+      <tfoot><tr><td>Equipe</td>{% for a in C.ATIVIDADES %}<td class="num">{{ total_mes[a.chave] }}</td>{% endfor %}<td class="num">{{ total }}</td><td></td></tr></tfoot>
+      {% endif %}
+    </table>
+  </div>
+</section>
+{% endblock %}

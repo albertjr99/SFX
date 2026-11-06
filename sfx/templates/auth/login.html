@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+{% block title %}Entrar{% endblock %}
+{% block publico %}
+<div class="acesso">
+  <section class="acesso-form">
+    <div class="marca" style="padding:0;color:var(--texto)">
+      <span class="marca-selo">{{ config_sfx.sigla }}</span>
+      <span class="marca-nome">{{ config_sfx.nome }}<small style="color:var(--texto-suave)">Sistema de produção · {{ config_sfx.instituicao }}</small></span>
+    </div>
+
+    <div>
+      <h1>Entrar</h1>
+      <p class="dica" style="margin-top:6px">Use seu nome ou e-mail institucional.</p>
+    </div>
+
+    {% include 'partials/_avisos.html' %}
+
+    <form method="post" action="{{ url_for('auth.login', next=request.args.get('next')) }}" novalidate>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="campo">
+        <label for="usuario">Nome ou e-mail</label>
+        <input id="usuario" name="usuario" type="text" autocomplete="username" required autofocus value="{{ identificador or '' }}">
+      </div>
+      <div class="campo">
+        <label for="senha">Senha</label>
+        <input id="senha" name="senha" type="password" autocomplete="current-password" required>
+      </div>
+      <label class="check-linha"><input type="checkbox" name="lembrar" value="1"> Manter conectado neste computador</label>
+      <button class="btn btn-primario" type="submit">Entrar</button>
+    </form>
+
+    <details class="contatos">
+      <summary>Primeiro acesso ou esqueceu a senha?</summary>
+      <p style="margin-top:8px">Entre com a <strong>senha provisória</strong> que você recebeu da gerência. O sistema vai pedir que você crie sua senha pessoal logo em seguida.</p>
+      {% if config_sfx.contatos %}
+        <p style="margin:0">Sem senha provisória? Fale com:</p>
+        <ul>
+          {% for c in config_sfx.contatos %}
+            <li>{{ c.nome }}{% if c.email %} — <a href="mailto:{{ c.email }}">{{ c.email }}</a>{% endif %}</li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p style="margin:0">Sem senha provisória? Peça à gerência do setor uma nova.</p>
+      {% endif %}
+    </details>
+  </section>
+
+  <section class="acesso-arte" aria-hidden="true">
+    <div class="livro-fantasma">
+      {% for i in range(1, 12) %}
+      <div class="{{ 'marcada' if i == 4 else '' }}">
+        <span class="n">{{ '%02d'|format(i) }}</span>
+        <span style="width:{{ [62, 48, 71, 55, 66, 40, 58, 69, 51, 63, 45][i-1] }}%"></span>
+        {% for j in range(5) %}<span class="x {{ 'on' if (i * 3 + j * 7) % 5 == 0 else '' }}"></span>{% endfor %}
+      </div>
+      {% endfor %}
+    </div>
+    <blockquote>Cada processo fixado, conferido e registrado — semana a semana.</blockquote>
+    <p>{{ config_sfx.nome }} · {{ config_sfx.instituicao }}</p>
+  </section>
+</div>
+{% endblock %}

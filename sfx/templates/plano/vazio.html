@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% block title %}Plano de ação{% endblock %}
+{% block content %}
+<div class="cabecalho"><div><h1>Plano de ação</h1><p>Acompanhamento mensal das caixas de processos do setor.</p></div></div>
+<div class="painel vazio-bloco">
+  <h2>Nenhum ciclo cadastrado</h2>
+  <p>Crie o primeiro ano de acompanhamento. Se você tinha a planilha antiga, peça à equipe de sistemas para rodar <code>flask plano importar</code>.</p>
+  <form method="post" action="{{ url_for('plano.novo') }}" class="linha-form" style="justify-content:center;margin-top:16px">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="campo"><label for="ano">Ano</label><input id="ano" type="number" name="ano" value="{{ ano_atual }}" min="2000" max="2100"></div>
+    <button class="btn btn-primario" type="submit">Criar ciclo</button>
+  </form>
+</div>
+{% endblock %}

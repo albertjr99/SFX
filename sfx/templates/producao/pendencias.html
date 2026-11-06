@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+{% from 'partials/_macros.html' import icone, selo_status, json_dados with context %}
+{% block title %}Pendências{% endblock %}
+
+{% macro cartao(p, arquivada=False) -%}
+<article class="pendencia{{ ' arquivada' if arquivada }}" id="pendencia-{{ p.id }}">
+  <div>
+    <div class="pendencia-processo">{{ p.numero_processo or 'Sem número' }}{% if p.nome_do_segurado %} <span style="font-weight:400">· {{ p.nome_do_segurado }}</span>{% endif %}</div>
+    <div class="pendencia-meta">
+      {{ selo_status(p.status) }}
+      <span>Semana de {{ p.semana }} · {{ p.mes }}/{{ p.ano }}</span>
+      <span>Registrado em {{ p.data_registro|data_local('%d/%m/%Y') }}</span>
+      {% if p.setor %}<span>Setor: {{ p.setor }}</span>{% endif %}
+    </div>
+    {% if p.observacoes %}<p class="dica" style="margin:6px 0 0">{{ p.observacoes }}</p>{% endif %}
+  </div>
+  <div class="nao-imprimir" style="display:flex;gap:6px;align-items:flex-start">
+    {% if pode_editar %}
+    <form method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="linha_id" value="{{ p.id }}"><input type="hidden" name="acao" value="alternar_removido">
+      <button type="submit" class="btn btn-pequeno">{{ 'Reabrir' if arquivada else 'Arquivar' }}</button>
+    </form>
+    {% endif %}
+  </div>
+  {% if pode_editar %}
+  <form method="post" class="resolucao">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="linha_id" value="{{ p.id }}"><input type="hidden" name="acao" value="salvar_resolucao">
+    <label class="sr-only" for="res-{{ p.id }}">Como foi resolvido</label>
+    <textarea id="res-{{ p.id }}" name="resolucao" rows="1" data-autoaltura placeholder="Como foi resolvido?">{{ p.resolucao or '' }}</textarea>
+    <button type="submit" class="btn btn-pequeno nao-imprimir">Salvar</button>
+  </form>
+  {% elif p.resolucao %}
+  <p style="grid-column:1/-1;margin:0"><span class="rotulo">Resolução:</span> {{ p.resolucao }}</p>
+  {% endif %}
+</article>
+{%- endmacro %}
+
+{% block content %}
+<div class="cabecalho">
+  <div>
+    <h1>{{ 'Pendências' if pode_editar else 'Pendências da equipe' }}</h1>
+    <p>Processos tramitados, aguardando orientação ou que precisam de acompanhamento depois do envio.</p>
+  </div>
+  <div class="cabecalho-acoes nao-imprimir">
+    {% if analistas %}
+    <form method="get">
+      <select name="analista_id" data-auto-enviar aria-label="Analista" style="width:auto">
+        <option value="">Escolha um analista…</option>
+        {% for a in analistas %}<option value="{{ a.id }}" {% if alvo and a.id == alvo.id %}selected{% endif %}>{{ a.nome }}</option>{% endfor %}
+      </select>
+    </form>
+    {% endif %}
+    {% if pode_editar %}<button type="button" class="btn" data-alternar="form-nova">{{ icone('mais') }}Nova pendência</button>{% endif %}
+    {% if alvo %}<button type="button" class="btn" data-imprimir-pagina>{{ icone('imprimir') }}Imprimir</button>{% endif %}
+  </div>
+</div>
+
+{% if pode_editar %}
+<section class="painel nao-imprimir" id="form-nova" hidden style="margin-bottom:18px">
+  <form method="post" class="painel-corpo linha-form" data-form-pendencia>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="acao" value="adicionar">
+    <input type="hidden" name="ano" value="{{ hoje.ano }}">
+    <div class="campo"><label for="np-mes">Mês</label>
+      <select id="np-mes" name="mes" required>
+        {% for m in C.MESES %}<option value="{{ m }}" {% if loop.index == hoje.mes %}selected{% endif %}>{{ m }}</option>{% endfor %}
+      </select></div>
+    <div class="campo"><label for="np-semana">Semana</label><select id="np-semana" name="semana" required></select></div>
+    <div class="campo"><label for="np-num">Nº do processo</label><input id="np-num" name="numero_processo" type="text" required></div>
+    <div class="campo" style="flex:1;min-width:200px"><label for="np-nome">Nome do segurado</label><input id="np-nome" name="nome_do_segurado" type="text"></div>
+    <div class="campo"><label for="np-status">Situação</label>
+      <select id="np-status" name="status" required>{% for s in status_pendentes %}<option value="{{ s.chave }}">{{ s.rotulo }}</option>{% endfor %}</select></div>
+    <button type="submit" class="btn btn-primario">Adicionar pendência</button>
+  </form>
+  {{ json_dados('semanas-ano', semanas_ano) }}
+</section>
+{% endif %}
+
+{% if not alvo %}
+  <div class="painel vazio-bloco"><h2>Escolha um analista</h2><p>As pendências aparecem aqui assim que você selecionar alguém da equipe.</p></div>
+{% else %}
+  <section class="painel">
+    <div class="painel-titulo"><h2>Em aberto</h2><small>{{ abertas|length }} processo(s){% if not pode_editar %} · {{ alvo.nome }}{% endif %}</small></div>
+    {% for p in abertas %}{{ cartao(p) }}{% else %}
+      <div class="vazio-bloco" style="padding:28px"><p style="margin:0">Nenhuma pendência em aberto. Processos marcados como tramitado, aguardando ou acompanhar na grade aparecem aqui.</p></div>
+    {% endfor %}
+  </section>
+
+  {% if removidas %}
+  <details class="painel nao-imprimir" style="margin-top:18px">
+    <summary class="painel-titulo" style="cursor:pointer;padding-bottom:16px"><h2>Arquivadas</h2><small>{{ removidas|length }}</small></summary>
+    {% for p in removidas %}{{ cartao(p, True) }}{% endfor %}
+  </details>
+  {% endif %}
+{% endif %}
+{% endblock %}

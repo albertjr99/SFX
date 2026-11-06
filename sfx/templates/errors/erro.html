@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+{% block title %}{{ titulo }}{% endblock %}
+{% block content %}
+<div class="painel vazio-bloco">
+  <p class="dica">Erro {{ codigo }}</p>
+  <h2>{{ titulo }}</h2>
+  <p>{{ texto }}</p>
+  <a class="btn btn-primario" href="{{ url_for('auth.inicio') }}">Ir para o início</a>
+</div>
+{% endblock %}
+{% block publico %}
+<div class="erro-pagina">
+  <p class="codigo">Erro {{ codigo }}</p>
+  <h1>{{ titulo }}</h1>
+  <p style="margin-top:8px">{{ texto }}</p>
+  <a class="btn btn-primario" href="{{ url_for('auth.login') }}">Ir para o login</a>
+</div>
+{% endblock %}

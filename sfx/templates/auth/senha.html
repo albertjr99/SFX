@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+{% block title %}Senha{% endblock %}
+{% block content %}
+<div class="cabecalho">
+  <div>
+    <h1>{{ 'Crie sua senha pessoal' if obrigatoria else 'Trocar senha' }}</h1>
+    <p>{% if obrigatoria %}Você entrou com uma senha provisória. Defina uma senha só sua para continuar.{% else %}A nova senha vale a partir do próximo acesso.{% endif %}</p>
+  </div>
+</div>
+
+<div class="painel" style="max-width:520px">
+  <form class="painel-corpo pilha" method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="campo">
+      <label for="senha_atual">{{ 'Senha provisória' if obrigatoria else 'Senha atual' }}</label>
+      <input id="senha_atual" name="senha_atual" type="password" autocomplete="current-password" required>
+    </div>
+    <div class="campo">
+      <label for="nova_senha">Nova senha</label>
+      <input id="nova_senha" name="nova_senha" type="password" autocomplete="new-password" required minlength="{{ config.SFX_SENHA_MINIMA }}">
+      <span class="dica">Pelo menos {{ config.SFX_SENHA_MINIMA }} caracteres, combinando letras e números.</span>
+    </div>
+    <div class="campo">
+      <label for="confirmacao">Repita a nova senha</label>
+      <input id="confirmacao" name="confirmacao" type="password" autocomplete="new-password" required>
+    </div>
+    <div><button class="btn btn-primario" type="submit">Salvar senha</button></div>
+  </form>
+</div>
+{% endblock %}

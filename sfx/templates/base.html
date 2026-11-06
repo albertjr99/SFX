@@ -1,0 +1,85 @@
+{% from 'partials/_macros.html' import icone with context %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <title>{% block title %}{% endblock %} · {{ config_sfx.sigla }}</title>
+  <link rel="icon" href="{{ url_for('static', filename='img/favicon.svg') }}" type="image/svg+xml">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}?v={{ versao }}">
+  {% block head %}{% endblock %}
+</head>
+<body>
+{% if current_user.is_authenticated %}
+{% set ep = request.endpoint %}
+<div class="app" id="app">
+  <header class="topo-movel">
+    <button type="button" data-menu aria-controls="lateral" aria-expanded="false" aria-label="Abrir menu">{{ icone('menu') }}</button>
+    <strong>{{ config_sfx.sigla }} · Produção</strong>
+  </header>
+
+  <aside class="lateral" id="lateral">
+    <a class="marca" href="{{ url_for('auth.inicio') }}">
+      <span class="marca-selo">{{ config_sfx.sigla }}</span>
+      <span class="marca-nome">{{ config_sfx.nome }}<small>Sistema de produção · {{ config_sfx.instituicao }}</small></span>
+    </a>
+
+    <nav class="nav" aria-label="Principal">
+      {% if current_user.eh_analista %}
+        <a href="{{ url_for('producao.minha_producao') }}" {% if ep == 'producao.minha_producao' %}aria-current="page"{% endif %}>{{ icone('grade') }}Minha produção</a>
+        <a href="{{ url_for('producao.pendencias') }}" {% if ep == 'producao.pendencias' %}aria-current="page"{% endif %}>{{ icone('alerta') }}Pendências</a>
+        <a href="{{ url_for('producao.estatisticas') }}" {% if ep == 'producao.estatisticas' %}aria-current="page"{% endif %}>{{ icone('grafico') }}Meus números</a>
+      {% endif %}
+
+      {% if current_user.eh_gestor %}
+        <span class="nav-grupo">Gestão</span>
+        <a href="{{ url_for('gestao.painel') }}" {% if ep in ('gestao.painel', 'gestao.analista') %}aria-current="page"{% endif %}>{{ icone('painel') }}Painel da equipe</a>
+        <a href="{{ url_for('gestao.setor') }}" {% if ep == 'gestao.setor' %}aria-current="page"{% endif %}>{{ icone('setor') }}Visão do setor</a>
+      {% endif %}
+
+      {% if current_user.edita_equipe %}
+        {% if current_user.eh_gestor %}{% else %}<span class="nav-grupo">Equipe</span>{% endif %}
+        <a href="{{ url_for('producao.equipe') }}" {% if ep == 'producao.equipe' %}aria-current="page"{% endif %}>{{ icone('equipe') }}Editar produção da equipe</a>
+        <a href="{{ url_for('producao.pendencias') }}" {% if ep == 'producao.pendencias' and not current_user.eh_analista %}aria-current="page"{% endif %}>{{ icone('alerta') }}Pendências da equipe</a>
+      {% endif %}
+
+      {% if current_user.acessa_plano_acao %}
+        <span class="nav-grupo">Acompanhamento</span>
+        <a href="{{ url_for('plano.indice') }}" {% if ep and ep.startswith('plano.') %}aria-current="page"{% endif %}>{{ icone('alvo') }}Plano de ação</a>
+      {% endif %}
+
+      {% if current_user.eh_gestor %}
+        <a href="{{ url_for('admin.usuarios') }}" {% if ep and ep.startswith('admin.') %}aria-current="page"{% endif %}>{{ icone('usuarios') }}Usuários</a>
+      {% endif %}
+    </nav>
+
+    <div class="lateral-rodape">
+      <div class="perfil">
+        <span class="avatar" aria-hidden="true">{{ current_user.iniciais }}</span>
+        <span class="perfil-nome">{{ current_user.nome }}<small>{{ current_user.perfil_rotulo }}{% if current_user.modalidade %} · {{ C.MODALIDADES.get(current_user.modalidade, current_user.modalidade) }}{% endif %}</small></span>
+      </div>
+      <div class="lateral-acoes">
+        <a href="{{ url_for('auth.trocar_senha') }}">Senha</a>
+        <button type="button" data-tela-cheia title="Tela cheia">Tela cheia</button>
+        <form method="post" action="{{ url_for('auth.logout') }}" style="flex:1;display:flex">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" style="flex:1">Sair</button>
+        </form>
+      </div>
+    </div>
+  </aside>
+
+  <main class="conteudo" id="conteudo">
+    {% include 'partials/_avisos.html' %}
+    {% block content %}{% endblock %}
+    <footer class="rodape nao-imprimir">{{ config_sfx.sigla }} · {{ config_sfx.instituicao }} · versão {{ versao }}</footer>
+  </main>
+</div>
+{% else %}
+  {% block publico %}{% endblock %}
+{% endif %}
+<script src="{{ url_for('static', filename='js/app.js') }}?v={{ versao }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

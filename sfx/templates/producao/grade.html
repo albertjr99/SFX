@@ -1,0 +1,147 @@
+{% extends 'base.html' %}
+{% from 'partials/_macros.html' import icone, mes_nav, selo_status with context %}
+{% set proprio = alvo.id == current_user.id %}
+{% block title %}{{ 'Minha produção' if proprio else 'Produção de ' ~ alvo.nome }} – {{ periodo.rotulo }}{% endblock %}
+
+{% macro linha(w, uid, p, numero) -%}
+<tr class="linha{% if p %} tem-conteudo{% endif %}" data-uid="{{ uid }}" {% if p %}id="linha-{{ p.id }}"{% endif %}>
+  <td class="margem">
+    <input type="hidden" name="s{{ w }}_linha" value="{{ uid }}">
+    <span class="numero">{{ '%02d'|format(numero) }}</span>
+    <button type="button" data-docs aria-expanded="false" title="Conferência documental">Docs<span class="docs-cont">{% if p and p.documentos_conferidos %} {{ p.documentos_conferidos }}{% endif %}</span></button>
+  </td>
+  <td class="col-status">
+    <select class="status" name="{{ uid }}__status" data-valor="{{ p.status if p else '' }}" aria-label="Situação">
+      <option value="">—</option>
+      {% for s in C.STATUS %}<option value="{{ s.chave }}" title="{{ s.rotulo }}" {% if p and p.status == s.chave %}selected{% endif %}>{{ s.simbolo }} {{ s.curto }}</option>{% endfor %}
+    </select>
+  </td>
+  <td class="col-proc"><input type="text" name="{{ uid }}__numero_processo" value="{{ p.numero_processo if p and p.numero_processo else '' }}" aria-label="Número do processo" autocomplete="off"></td>
+  <td class="col-nome"><input type="text" name="{{ uid }}__nome_do_segurado" value="{{ p.nome_do_segurado if p and p.nome_do_segurado else '' }}" aria-label="Nome do segurado" autocomplete="off"></td>
+  {% for a in C.ATIVIDADES %}
+  <td class="cb"><label><input type="checkbox" name="{{ uid }}__{{ a.chave }}" data-atv="{{ a.chave }}" {% if p and p[a.chave] %}checked{% endif %}><span class="sr-only">{{ a.rotulo }}</span></label></td>
+  {% endfor %}
+  <td class="col-setor"><input type="text" name="{{ uid }}__setor" value="{{ p.setor if p and p.setor else '' }}" aria-label="Setor" autocomplete="off"></td>
+  <td class="col-obs"><input type="text" name="{{ uid }}__observacoes" value="{{ p.observacoes if p and p.observacoes else '' }}" aria-label="Observações" autocomplete="off"></td>
+  <td class="col-acao"><button type="button" class="btn-remover" data-remover title="Remover linha" aria-label="Remover linha">×</button></td>
+</tr>
+<tr class="docs" hidden>
+  <td colspan="{{ 7 + C.ATIVIDADES|length }}">
+    <div class="docs-titulo">Conferência documental
+      <button type="button" class="btn btn-pequeno btn-discreto" data-docs-todos>Marcar todos</button>
+      <button type="button" class="btn btn-pequeno btn-discreto" data-docs-nenhum>Limpar</button>
+    </div>
+    <div class="docs-grade">
+      {% for d in C.DOCUMENTOS %}
+      <label><input type="checkbox" name="{{ uid }}__{{ d.chave }}" data-doc {% if p and p[d.chave] %}checked{% endif %}>{{ d.rotulo }}</label>
+      {% endfor %}
+    </div>
+  </td>
+</tr>
+{%- endmacro %}
+
+{% block content %}
+<div class="cabecalho">
+  <div>
+    <h1>{{ 'Minha produção' if proprio else 'Produção de ' ~ alvo.nome }}</h1>
+    <p>{% if not proprio %}{{ C.MODALIDADES.get(alvo.modalidade, '') }} · edição pela {{ current_user.perfil_rotulo|lower }} {{ current_user.nome }}{% else %}Registre cada processo na semana em que foi trabalhado.{% endif %}</p>
+  </div>
+  <div class="cabecalho-acoes nao-imprimir">
+    {% if analistas %}
+    <form method="get" class="linha-form">
+      <input type="hidden" name="ano" value="{{ periodo.ano }}"><input type="hidden" name="mes" value="{{ periodo.mes }}">
+      <select name="analista_id" data-auto-enviar aria-label="Trocar analista">
+        {% for a in analistas %}<option value="{{ a.id }}" {% if a.id == alvo.id %}selected{% endif %}>{{ a.nome }} ({{ C.MODALIDADES.get(a.modalidade, '-') }})</option>{% endfor %}
+      </select>
+    </form>
+    {% endif %}
+    {{ mes_nav(endpoint, periodo, extra_args) }}
+  </div>
+</div>
+
+<dl class="placar nao-imprimir" style="margin:0 0 18px">
+  <div><dt>Atividades no mês</dt><dd data-total-mes>{{ total_atividades|numero }}</dd></div>
+  <div><dt>Processos distintos</dt><dd>{{ processos|numero }}</dd></div>
+  {% for a in C.ATIVIDADES if total_mes[a.chave] %}
+    {% if loop.index <= 3 %}<div><dt>{{ a.rotulo }}</dt><dd>{{ total_mes[a.chave]|numero }}</dd></div>{% endif %}
+  {% endfor %}
+</dl>
+
+<form method="post" id="form-grade" data-grade autocomplete="off">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+  <div class="barra-grade">
+    <nav class="indice-semanas" aria-label="Semanas do mês">
+      {% for s in periodo.semanas %}
+        <a href="#semana-{{ loop.index0 }}" class="{{ 'corrente' if s == semana_corrente else '' }}">{{ s }}</a>
+      {% endfor %}
+    </nav>
+    <div class="busca nao-imprimir" data-busca data-url="{{ url_for('producao.api_busca') }}">
+      {{ icone('busca') }}
+      <input type="search" placeholder="Buscar processo ou segurado" aria-label="Buscar processo ou segurado em todos os meses">
+      <div class="busca-resultados" hidden></div>
+    </div>
+    <details class="nao-imprimir" style="position:relative">
+      <summary class="btn">{{ icone('imprimir') }}Imprimir</summary>
+      <div class="busca-resultados" style="padding:12px 14px;width:280px">
+        <p class="rotulo" style="margin-bottom:8px">Semanas na impressão</p>
+        {% for s in periodo.semanas %}<label class="check-linha" style="margin-bottom:4px"><input type="checkbox" data-imprimir-semana="{{ loop.index0 }}" checked> {{ s }}</label>{% endfor %}
+        <button type="button" class="btn btn-primario btn-pequeno" data-imprimir style="margin-top:8px">Imprimir selecionadas</button>
+      </div>
+    </details>
+    <span class="estado-salvo" data-estado aria-live="polite">Tudo salvo</span>
+    <button type="submit" class="btn btn-primario">{{ icone('salvar') }}Salvar produção</button>
+  </div>
+
+  <details class="nao-imprimir" style="margin:6px 0 4px">
+    <summary class="dica" style="cursor:pointer">Legenda das situações</summary>
+    <div class="legenda" style="margin-top:8px">{% for s in C.STATUS %}{{ selo_status(s.chave) }}{% endfor %}</div>
+  </details>
+
+  {% for semana in periodo.semanas %}
+  {% set w = loop.index0 %}
+  {% set linhas = grade[semana] %}
+  <section class="caderno{{ ' corrente' if semana == semana_corrente else '' }}" id="semana-{{ w }}" data-semana="{{ w }}">
+    <input type="hidden" name="s{{ w }}" value="{{ semana }}">
+    <header class="caderno-cabeca">
+      <h2>Semana de {{ semana }}</h2>
+      {% if semana == semana_corrente %}<span class="marcador">semana atual</span>{% endif %}
+      <div class="contagem-semana" data-contagem>
+        <span>Total <b data-total>{{ por_semana[semana].values()|sum }}</b></span>
+        {% for a in C.ATIVIDADES %}<span {% if not por_semana[semana][a.chave] %}hidden{% endif %} data-cont="{{ a.chave }}">{{ a.curto }} <b>{{ por_semana[semana][a.chave] }}</b></span>{% endfor %}
+      </div>
+    </header>
+    <div class="livro-envolta">
+      <table class="livro">
+        <thead>
+          <tr>
+            <th>Linha</th>
+            <th>Situação</th>
+            <th>Nº do processo</th>
+            <th>Nome do segurado</th>
+            {% for a in C.ATIVIDADES %}<th class="atv" title="{{ a.rotulo }}"><span>{{ a.curto }}</span></th>{% endfor %}
+            <th>Setor</th>
+            <th>Observações</th>
+            <th class="col-acao"><span class="sr-only">Remover</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in linhas %}
+            {{ linha(w, ('e' ~ p.id) if p else ('n' ~ w ~ 'x' ~ loop.index0), p, loop.index) }}
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="caderno-pe">
+      <button type="button" class="btn btn-pequeno" data-adicionar>{{ icone('mais') }}Adicionar linha</button>
+    </div>
+  </section>
+  {% endfor %}
+</form>
+
+<template id="modelo-linha">{{ linha('__W__', '__UID__', None, 0) }}</template>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/grade.js') }}?v={{ versao }}"></script>
+{% endblock %}

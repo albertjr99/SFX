@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+{% from 'partials/_macros.html' import icone, json_dados with context %}
+{% block title %}Visão do setor – {{ periodo.ano }}{% endblock %}
+{% block content %}
+<div class="cabecalho">
+  <div>
+    <h1>Visão do setor</h1>
+    <p>Atividades de toda a equipe, mês a mês, em {{ periodo.ano }}.</p>
+  </div>
+  <div class="cabecalho-acoes nao-imprimir">
+    <nav class="mes-nav" aria-label="Ano">
+      <a href="{{ url_for('gestao.setor', ano=periodo.ano - 1) }}" aria-label="Ano anterior">{{ icone('esquerda') }}</a>
+      <strong>{{ periodo.ano }}</strong>
+      <a href="{{ url_for('gestao.setor', ano=periodo.ano + 1) }}" aria-label="Próximo ano">{{ icone('direita') }}</a>
+    </nav>
+    <button type="button" class="btn" data-imprimir-pagina>{{ icone('imprimir') }}Imprimir</button>
+  </div>
+</div>
+
+<dl class="placar" style="margin-bottom:18px">
+  <div><dt>Atividades no ano</dt><dd>{{ total|numero }}</dd></div>
+  {% set top = totais.items()|sort(attribute='1', reverse=true)|list %}
+  {% for chave, v in top[:3] if v %}<div><dt>{{ C.ROTULO_ATIVIDADE[chave] }}</dt><dd>{{ v|numero }}</dd></div>{% endfor %}
+</dl>
+
+<section class="painel" style="margin-bottom:18px">
+  <div class="painel-titulo"><h2>Evolução mensal por atividade</h2><small>Clique na legenda para mostrar ou ocultar</small></div>
+  <div class="painel-corpo"><div class="grafico grafico-alto"><canvas data-grafico="setor" role="img" aria-label="Atividades por mês e tipo"></canvas></div></div>
+</section>
+
+<section class="painel">
+  <div class="painel-corpo tabela-envolta">
+    <table class="tabela">
+      <thead><tr><th>Mês</th>{% for a in C.ATIVIDADES %}<th class="num" title="{{ a.rotulo }}">{{ a.curto }}</th>{% endfor %}<th class="num">Total</th></tr></thead>
+      <tbody>
+        {% for mes, vals in serie.items() %}
+        <tr><td>{{ mes }}</td>{% for a in C.ATIVIDADES %}<td class="num {{ 'zero' if not vals[a.chave] }}">{{ vals[a.chave] }}</td>{% endfor %}<td class="num"><strong>{{ vals.values()|sum }}</strong></td></tr>
+        {% endfor %}
+      </tbody>
+      <tfoot><tr><td>Ano</td>{% for a in C.ATIVIDADES %}<td class="num">{{ totais[a.chave] }}</td>{% endfor %}<td class="num">{{ total }}</td></tr></tfoot>
+    </table>
+  </div>
+</section>
+{{ json_dados('dados-grafico', grafico) }}
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='vendor/chart.umd.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/graficos.js') }}?v={{ versao }}"></script>
+{% endblock %}

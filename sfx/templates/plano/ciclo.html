@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+{% from 'partials/_macros.html' import icone, json_dados with context %}
+{% block title %}Plano de ação {{ ciclo.ano }}{% endblock %}
+{% block content %}
+<div class="cabecalho">
+  <div>
+    <h1>Plano de ação {{ ciclo.ano }}</h1>
+    <p>Quantidade de processos nas principais caixas do setor, mês a mês. A variação mostra quanto o total caiu em relação ao mês anterior.</p>
+  </div>
+  <div class="cabecalho-acoes nao-imprimir">
+    <div class="segmentos" role="group" aria-label="Ano do ciclo">
+      {% for a in anos %}<a href="{{ url_for('plano.ciclo', ano=a) }}" {% if a == ciclo.ano %}aria-current="true"{% endif %}>{{ a }}</a>{% endfor %}
+    </div>
+    <details style="position:relative">
+      <summary class="btn">{{ icone('mais') }}Novo ciclo</summary>
+      <form method="post" action="{{ url_for('plano.novo') }}" class="busca-resultados linha-form" style="padding:12px;width:260px">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="campo" style="flex:1"><label for="novo-ano">Ano</label><input id="novo-ano" type="number" name="ano" value="{{ anos[-1] + 1 }}" min="2000" max="2100"></div>
+        <button class="btn btn-primario" type="submit">Criar</button>
+      </form>
+    </details>
+    <button type="button" class="btn" data-imprimir-pagina>{{ icone('imprimir') }}Imprimir</button>
+    <span class="estado-salvo" data-estado aria-live="polite">Tudo salvo</span>
+    <button type="button" class="btn btn-primario" data-salvar-plano data-url="{{ url_for('plano.salvar', ano=ciclo.ano) }}">{{ icone('salvar') }}Salvar</button>
+  </div>
+</div>
+
+<section class="painel" style="margin-bottom:18px">
+  <div class="painel-titulo">
+    <h2>Total no setor e variação</h2>
+    <details class="nao-imprimir"><summary class="dica" style="cursor:pointer">Meses no gráfico</summary>
+      <div class="legenda" style="margin-top:8px;max-width:520px" data-filtro-meses>
+        {% for l in linhas %}<label class="check-linha"><input type="checkbox" value="{{ l.id }}" checked> {{ l.rotulo }}</label>{% endfor %}
+      </div>
+    </details>
+  </div>
+  <div class="painel-corpo"><div class="grafico"><canvas data-grafico-plano role="img" aria-label="Total de processos por mês e variação"></canvas></div></div>
+</section>
+
+<section class="painel">
+  <div class="painel-corpo tabela-envolta">
+    <table class="tabela plano" data-plano>
+      <thead>
+        <tr>
+          <th>Mês</th><th class="num">Caixa PA</th><th class="num">Caixa IN P</th><th class="num">Conferência P</th><th class="num">P sem pensão</th>
+          <th class="num">Total no setor</th><th class="num">Variação</th><th>Extração do relatório</th><th>Observações e temas relevantes</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for l in linhas %}
+        <tr data-id="{{ l.id }}" class="{{ 'base' if l.eh_base }}">
+          <td><strong>{{ l.rotulo }}</strong>{% if l.eh_base %}<br><span class="dica">referência</span>{% endif %}</td>
+          {% for c in ['caixa_pa', 'caixa_in_p', 'caixa_conferencia_p', 'caixa_p_sem_pensao'] %}
+          <td class="num"><input type="number" min="0" step="1" data-campo="{{ c }}" value="{{ l[c] if l[c] is not none else '' }}" aria-label="{{ c }} {{ l.rotulo }}"></td>
+          {% endfor %}
+          <td class="num" data-total><strong>{{ l.total|numero }}</strong></td>
+          <td class="num" data-variacao>{{ l.variacao|pct }}</td>
+          <td><input type="text" data-campo="data_extracao" value="{{ l.data_extracao }}" placeholder="dd/mm/aaaa" aria-label="Data de extração {{ l.rotulo }}"></td>
+          <td><textarea data-campo="observacoes" data-autoaltura rows="1" aria-label="Observações {{ l.rotulo }}">{{ l.observacoes }}</textarea></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="painel" style="margin-top:18px">
+  <div class="painel-titulo"><h2>Notas sobre o ciclo</h2></div>
+  <div class="painel-corpo"><textarea data-nota data-autoaltura rows="3" aria-label="Notas sobre o ciclo">{{ ciclo.nota or '' }}</textarea></div>
+</section>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='vendor/chart.umd.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/plano.js') }}?v={{ versao }}"></script>
+{% endblock %}

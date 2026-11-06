@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+{% from 'partials/_macros.html' import icone with context %}
+{% block title %}Usuários{% endblock %}
+
+{% macro campos_usuario(u=None, prefixo='') -%}
+<div class="campo"><label for="{{ prefixo }}nome">Nome (usado no login)</label><input id="{{ prefixo }}nome" name="nome" type="text" required maxlength="50" value="{{ u.nome if u else '' }}"></div>
+<div class="campo" style="flex:1;min-width:220px"><label for="{{ prefixo }}email">E-mail</label><input id="{{ prefixo }}email" name="email" type="email" required value="{{ u.email if u else '' }}"></div>
+<div class="campo"><label for="{{ prefixo }}tipo">Perfil</label>
+  <select id="{{ prefixo }}tipo" name="tipo">{% for k, v in perfis.items() %}<option value="{{ k }}" {% if u and u.tipo == k %}selected{% endif %}>{{ v }}</option>{% endfor %}</select></div>
+<div class="campo"><label for="{{ prefixo }}modalidade">Modalidade (analistas)</label>
+  <select id="{{ prefixo }}modalidade" name="modalidade"><option value="">—</option>{% for k, v in modalidades.items() %}<option value="{{ k }}" {% if u and u.modalidade == k %}selected{% endif %}>{{ v }}</option>{% endfor %}</select></div>
+<label class="check-linha" style="padding-bottom:9px"><input type="checkbox" name="pode_plano_acao" value="1" {% if u and u.pode_plano_acao %}checked{% endif %}> Acessa o plano de ação</label>
+{%- endmacro %}
+
+{% block content %}
+<div class="cabecalho">
+  <div><h1>Usuários</h1><p>Cadastre a equipe, redefina senhas e desative acessos sem perder o histórico.</p></div>
+  <div class="cabecalho-acoes"><button type="button" class="btn btn-primario" data-alternar="form-novo">{{ icone('mais') }}Novo usuário</button></div>
+</div>
+
+{% if senha_gerada %}
+<section class="painel" style="margin-bottom:18px;border-color:var(--marca)">
+  <div class="painel-corpo">
+    <p style="margin-bottom:8px">Senha provisória de <strong>{{ senha_gerada.usuario.nome }}</strong>. Entregue pessoalmente; no primeiro acesso o sistema pedirá uma senha nova.</p>
+    <span class="senha-revelada">{{ senha_gerada.senha }}</span>
+  </div>
+</section>
+{% endif %}
+
+<section class="painel" id="form-novo" hidden style="margin-bottom:18px">
+  <div class="painel-titulo"><h2>Novo usuário</h2><small>Uma senha provisória é gerada automaticamente</small></div>
+  <form method="post" action="{{ url_for('admin.criar') }}" class="painel-corpo linha-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    {{ campos_usuario(None, 'novo-') }}
+    <button type="submit" class="btn btn-primario">Cadastrar</button>
+  </form>
+</section>
+
+<section class="painel">
+  <div class="painel-corpo tabela-envolta">
+    <table class="tabela">
+      <thead><tr><th>Nome</th><th>Perfil</th><th>E-mail</th><th>Situação</th><th><span class="sr-only">Ações</span></th></tr></thead>
+      <tbody>
+        {% for u in usuarios %}
+        <tr {% if not u.ativo %}style="opacity:.6"{% endif %}>
+          <td><strong>{{ u.nome }}</strong>{% if u.pode_plano_acao %} <span class="etiqueta">plano de ação</span>{% endif %}</td>
+          <td>{{ u.perfil_rotulo }}{% if u.modalidade %}<br><span class="dica">{{ modalidades.get(u.modalidade, u.modalidade) }}</span>{% endif %}</td>
+          <td>{{ u.email }}</td>
+          <td>
+            {% if not u.ativo %}<span class="etiqueta">Desativado</span>
+            {% elif u.precisa_trocar_senha %}<span class="etiqueta etiqueta-alerta">Senha provisória</span>
+            {% else %}<span class="etiqueta etiqueta-ok">Ativo</span>{% endif %}
+          </td>
+          <td style="white-space:nowrap">
+            {% if u.tipo != 'admin' or current_user.tipo == 'admin' %}
+            <details class="editar">
+              <summary>Editar</summary>
+              <div style="padding:12px 0;display:flex;flex-direction:column;gap:12px;min-width:min(760px,80vw)">
+                <form method="post" action="{{ url_for('admin.editar', usuario_id=u.id) }}" class="linha-form">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  {{ campos_usuario(u, 'u' ~ u.id ~ '-') }}
+                  <button type="submit" class="btn btn-primario">Salvar</button>
+                </form>
+                <div class="linha-form">
+                  <form method="post" action="{{ url_for('admin.editar', usuario_id=u.id) }}" data-confirmar="Gerar uma nova senha provisória para {{ u.nome }}? A senha atual deixa de funcionar.">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="acao" value="redefinir_senha">
+                    <button type="submit" class="btn">{{ icone('chave') }}Redefinir senha</button>
+                  </form>
+                  {% if u.id != current_user.id %}
+                  <form method="post" action="{{ url_for('admin.editar', usuario_id=u.id) }}" data-confirmar="{{ ('Desativar o acesso de ' ~ u.nome ~ '? O histórico de produção é mantido.') if u.ativo else ('Reativar ' ~ u.nome ~ '?') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="acao" value="alternar_ativo">
+                    <button type="submit" class="btn {{ 'btn-perigo' if u.ativo }}">{{ 'Desativar acesso' if u.ativo else 'Reativar acesso' }}</button>
+                  </form>
+                  {% endif %}
+                </div>
+              </div>
+            </details>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}
