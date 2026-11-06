@@ -5,6 +5,8 @@ from sfx.models import LinhaProducao
 from sfx.services import producao as svc
 from sfx.services.periodo import Periodo
 
+from .conftest import marcar
+
 
 @pytest.fixture()
 def producao(usuarios):
@@ -23,8 +25,7 @@ def producao(usuarios):
             nome_do_segurado=f"Segurado {n}",
             status="tramitado",
         )
-        for c in campos:
-            setattr(l, c, True)
+        marcar(l, *campos)
         db.session.add(l)
     db.session.commit()
 

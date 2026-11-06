@@ -5,20 +5,19 @@ from __future__ import annotations
 from collections import defaultdict
 from dataclasses import dataclass, field
 
-from sqlalchemy import case, func, or_
+from sqlalchemy import func, or_
 from sqlalchemy.orm import joinedload
 
 from ..constants import (
     CAMPOS_TEXTO,
-    CHAVES_ATIVIDADES,
-    CHAVES_DOCUMENTOS,
+    GRUPO_ATIVIDADE,
     LINHAS_PADRAO_POR_SEMANA,
     MESES,
     PERFIL_ANALISTA,
-    STATUS_POR_CHAVE,
 )
 from ..extensions import db
-from ..models import LinhaProducao, Usuario, agora_utc
+from ..models import ItemGrade, LinhaProducao, Usuario, agora_utc, linha_item
+from . import itens as itens_svc
 from .periodo import Periodo
 
 LIMITES_TEXTO = {"numero_processo": 100, "nome_do_segurado": 100, "setor": 100, "observacoes": 4000}
@@ -86,6 +85,8 @@ def salvar_grade(alvo: Usuario, periodo: Periodo, form, editor: Usuario) -> Resu
     """
     resultado = ResultadoGravacao()
     semanas_validas = set(periodo.semanas)
+    # Só itens ativos aparecem na tela; marcações em itens ocultos são preservadas.
+    editaveis = itens_svc.atividades() + itens_svc.documentos()
     existentes = {l.id: l for l in linhas_do_mes(alvo.id, periodo)}
     agora = agora_utc()
 
@@ -119,9 +120,10 @@ def salvar_grade(alvo: Usuario, periodo: Periodo, form, editor: Usuario) -> Resu
             for campo in CAMPOS_TEXTO:
                 setattr(linha, campo, _texto(form, f"{uid}__{campo}", campo))
             status = form.get(f"{uid}__status") or ""
-            linha.status = status if status in STATUS_POR_CHAVE else ""
-            for campo in CHAVES_ATIVIDADES + CHAVES_DOCUMENTOS:
-                setattr(linha, campo, form.get(f"{uid}__{campo}") is not None)
+            validas = {st.chave for st in itens_svc.situacoes()} | ({linha.status} if linha.status else set())
+            linha.status = status if status in validas else ""
+            preservados = [i for i in linha.itens if not i.ativo]
+            linha.itens = preservados + [i for i in editaveis if form.get(f"{uid}__{i.chave}") is not None]
 
             if linha.esta_vazia():
                 if not nova:
@@ -155,44 +157,45 @@ def salvar_grade(alvo: Usuario, periodo: Periodo, form, editor: Usuario) -> Resu
 def _assinatura(linha: LinhaProducao) -> tuple:
     """Valores normalizados (None ≡ "" ≡ False) para detectar alteração real."""
     textos = tuple((getattr(linha, c) or "") for c in ("status", *CAMPOS_TEXTO))
-    marcas = tuple(bool(getattr(linha, c)) for c in (*CHAVES_ATIVIDADES, *CHAVES_DOCUMENTOS))
-    return (linha.indice_linha, *textos, *marcas)
+    return (linha.indice_linha, *textos, frozenset(i.id for i in linha.itens))
 
 
 # ---------------------------------------------------------------------------
 # Estatísticas
 # ---------------------------------------------------------------------------
-def _somas_atividades():
-    return [func.sum(case((getattr(LinhaProducao, c).is_(True), 1), else_=0)).label(c) for c in CHAVES_ATIVIDADES]
-
-
 def _zeros() -> dict[str, int]:
-    return {c: 0 for c in CHAVES_ATIVIDADES}
+    return dict.fromkeys(itens_svc.chaves_atividades(), 0)
+
+
+def _contar(agrupar_por, **filtros):
+    """Conta marcações de atividades ativas, agrupando por uma coluna de LinhaProducao."""
+    colunas = [agrupar_por] if agrupar_por is not None else []
+    consulta = (
+        db.session.query(*colunas, ItemGrade.chave, func.count())
+        .select_from(LinhaProducao)
+        .join(linha_item, linha_item.c.linha_id == LinhaProducao.id)
+        .join(ItemGrade, ItemGrade.id == linha_item.c.item_id)
+        .filter(ItemGrade.grupo == GRUPO_ATIVIDADE, ItemGrade.ativo.is_(True))
+    )
+    for chave, valor in filtros.items():
+        if valor is not None:
+            consulta = consulta.filter(getattr(LinhaProducao, chave) == valor)
+    return consulta.group_by(*colunas, ItemGrade.chave).all()
 
 
 def contagem_por_semana(usuario_id: int, periodo: Periodo) -> dict[str, dict[str, int]]:
-    linhas = (
-        db.session.query(LinhaProducao.semana, *_somas_atividades())
-        .filter_by(usuario_id=usuario_id, ano=periodo.ano, mes=periodo.nome_mes)
-        .group_by(LinhaProducao.semana)
-        .all()
-    )
     resultado = {s: _zeros() for s in periodo.semanas}
-    for linha in linhas:
-        resultado.setdefault(linha.semana, _zeros())
-        for c in CHAVES_ATIVIDADES:
-            resultado[linha.semana][c] = int(getattr(linha, c) or 0)
+    for semana, chave, n in _contar(LinhaProducao.semana, usuario_id=usuario_id, ano=periodo.ano, mes=periodo.nome_mes):
+        resultado.setdefault(semana, _zeros())[chave] = int(n)
     return resultado
 
 
 def contagem(**filtros) -> dict[str, int]:
     """Contagem por atividade com filtros simples (usuario_id, ano, mes, semana)."""
-    consulta = db.session.query(*_somas_atividades())
-    for chave, valor in filtros.items():
-        if valor is not None:
-            consulta = consulta.filter(getattr(LinhaProducao, chave) == valor)
-    linha = consulta.one()
-    return {c: int(getattr(linha, c) or 0) for c in CHAVES_ATIVIDADES}
+    resultado = _zeros()
+    for chave, n in _contar(None, **filtros):
+        resultado[chave] = int(n)
+    return resultado
 
 
 def processos_distintos(**filtros) -> int:
@@ -206,13 +209,10 @@ def processos_distintos(**filtros) -> int:
 
 
 def serie_mensal(ano: int, usuario_id: int | None = None) -> dict[str, dict[str, int]]:
-    consulta = db.session.query(LinhaProducao.mes, *_somas_atividades()).filter(LinhaProducao.ano == ano)
-    if usuario_id is not None:
-        consulta = consulta.filter(LinhaProducao.usuario_id == usuario_id)
     resultado = {m: _zeros() for m in MESES}
-    for linha in consulta.group_by(LinhaProducao.mes).all():
-        if linha.mes in resultado:
-            resultado[linha.mes] = {c: int(getattr(linha, c) or 0) for c in CHAVES_ATIVIDADES}
+    for mes, chave, n in _contar(LinhaProducao.mes, ano=ano, usuario_id=usuario_id):
+        if mes in resultado:
+            resultado[mes][chave] = int(n)
     return resultado
 
 
@@ -223,13 +223,9 @@ def ranking_equipe(periodo: Periodo) -> list[dict]:
         .order_by(Usuario.nome)
         .all()
     )
-    linhas = (
-        db.session.query(LinhaProducao.usuario_id, *_somas_atividades())
-        .filter_by(ano=periodo.ano, mes=periodo.nome_mes)
-        .group_by(LinhaProducao.usuario_id)
-        .all()
-    )
-    por_usuario = {l.usuario_id: {c: int(getattr(l, c) or 0) for c in CHAVES_ATIVIDADES} for l in linhas}
+    por_usuario: dict[int, dict[str, int]] = {}
+    for usuario_id, chave, n in _contar(LinhaProducao.usuario_id, ano=periodo.ano, mes=periodo.nome_mes):
+        por_usuario.setdefault(usuario_id, _zeros())[chave] = int(n)
     tabela = []
     for analista in analistas:
         valores = por_usuario.get(analista.id, _zeros())

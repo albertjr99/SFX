@@ -16,16 +16,14 @@ from sqlalchemy import func
 
 from . import tempo
 from .constants import (
-    CHAVES_ATIVIDADES,
-    CHAVES_DOCUMENTOS,
     MODALIDADES,
     PERFIL_ANALISTA,
     PERFIS,
-    STATUS,
 )
 from .extensions import db
 from .models import LinhaProducao, PlanoAcaoCiclo, Usuario
 from .security import senha_provisoria
+from .services import itens as itens_svc
 from .services.periodo import Periodo
 from .services.plano_acao import criar_ciclo
 
@@ -68,6 +66,7 @@ def sfx_preparar():
             shutil.copy2(semente, destino)
             click.echo(f"Banco inicial copiado para {destino}.")
     upgrade()
+    itens_svc.semear_padrao()
     planilha = DADOS_INICIAIS / "Pasta2.xlsx"
     if planilha.exists() and not PlanoAcaoCiclo.query.first():
         anos = importar_planilha(planilha)
@@ -220,6 +219,7 @@ def demo_popular(senha, meses, forcar):
     """Cria usuários e produção fictícios (NÃO use em produção)."""
     if Usuario.query.count() and not forcar:
         raise click.ClickException("O banco já tem usuários. Use --forcar se tiver certeza.")
+    itens_svc.semear_padrao()
     rnd = random.Random(42)
     criados = []
     for nome, tipo, modalidade in DEMO_USUARIOS:
@@ -253,12 +253,13 @@ def demo_popular(senha, meses, forcar):
                         numero_processo=f"{rnd.randint(2019, periodo.ano)}-{rnd.randint(10000, 99999)}",
                         nome_do_segurado=f"{rnd.choice(PRENOMES)} {rnd.choice(SOBRENOMES)}",
                         setor=rnd.choice(SETORES),
-                        status=rnd.choices([s.chave for s in STATUS], weights=[6, 2, 1, 1, 3])[0],
+                        status=rnd.choices([s.chave for s in itens_svc.situacoes()] or [""], k=1)[0],
                     )
-                    for chave in rnd.sample(CHAVES_ATIVIDADES, rnd.choice([1, 1, 1, 2])):
-                        setattr(linha, chave, True)
-                    for chave in rnd.sample(CHAVES_DOCUMENTOS, rnd.randint(0, 12)):
-                        setattr(linha, chave, True)
+                    atividades = itens_svc.atividades()
+                    documentos = itens_svc.documentos()
+                    linha.itens = rnd.sample(atividades, min(len(atividades), rnd.choice([1, 1, 1, 2]))) + rnd.sample(
+                        documentos, min(len(documentos), rnd.randint(0, 12))
+                    )
                     db.session.add(linha)
         periodo = periodo.anterior
     db.session.commit()

@@ -12,9 +12,9 @@ from flask import Blueprint, abort, flash, redirect, render_template, request, u
 from flask_login import current_user
 from sqlalchemy import func, or_
 
-from ..constants import MODALIDADES, PERFIL_ADMIN, PERFIL_ANALISTA, PERFIS
+from ..constants import GRUPOS_ITENS, MODALIDADES, PERFIL_ADMIN, PERFIL_ANALISTA, PERFIS
 from ..extensions import db
-from ..models import LinhaProducao, Usuario
+from ..models import ItemGrade, LinhaProducao, Situacao, Usuario
 from ..security import exige, senha_provisoria
 
 bp = Blueprint("admin", __name__, url_prefix="/admin")
@@ -191,3 +191,129 @@ def _excluir(usuario: Usuario):
     db.session.commit()
     flash(f"Acesso de {nome} excluído.", "sucesso")
     return redirect(url_for("admin.usuarios"))
+
+
+# ---------------------------------------------------------------------------
+# Colunas da grade (atividades e documentos) e situações — só administradores
+# ---------------------------------------------------------------------------
+@bp.get("/colunas")
+@exige("eh_admin")
+def colunas():
+    from ..services import itens as itens_svc
+
+    grupos = []
+    for grupo, titulo in GRUPOS_ITENS.items():
+        lista = itens_svc.listar(grupo, incluir_inativos=True)
+        grupos.append({"grupo": grupo, "titulo": titulo, "itens": [(i, itens_svc.uso(i)) for i in lista]})
+    situacoes = [(s, itens_svc.uso_situacao(s)) for s in itens_svc.situacoes(incluir_inativas=True)]
+    return render_template("admin/colunas.html", grupos=grupos, lista_situacoes=situacoes)
+
+
+def _volta_colunas(ancora: str):
+    return redirect(url_for("admin.colunas") + f"#{ancora}")
+
+
+@bp.post("/colunas/item/novo")
+@exige("eh_admin")
+def coluna_nova():
+    from ..services import itens as itens_svc
+
+    grupo = request.form.get("grupo", "")
+    rotulo = (request.form.get("rotulo") or "").strip()
+    if grupo not in GRUPOS_ITENS or not rotulo:
+        flash("Informe o nome da nova coluna.", "erro")
+        return _volta_colunas(grupo or "atividade")
+    item = itens_svc.criar(grupo, rotulo, request.form.get("curto") or "")
+    flash(f"“{item.rotulo}” adicionada.", "sucesso")
+    return _volta_colunas(grupo)
+
+
+@bp.post("/colunas/item/<int:item_id>")
+@exige("eh_admin")
+def coluna_editar(item_id: int):
+    from ..services import itens as itens_svc
+
+    item = db.session.get(ItemGrade, item_id) or abort(404)
+    acao = request.form.get("acao", "salvar")
+    if acao in ("subir", "descer"):
+        itens_svc.mover(item, -1 if acao == "subir" else 1)
+    elif acao == "alternar":
+        item.ativo = not item.ativo
+        db.session.commit()
+        flash(f"“{item.rotulo}” {'reexibida' if item.ativo else 'ocultada'}. O histórico foi mantido.", "sucesso")
+    elif acao == "excluir":
+        usos = itens_svc.uso(item)
+        if usos:
+            flash(f"“{item.rotulo}” já foi marcada {usos} vez(es). Oculte-a para preservar o histórico.", "erro")
+        else:
+            db.session.delete(item)
+            db.session.commit()
+            flash(f"“{item.rotulo}” excluída.", "sucesso")
+    else:
+        rotulo = (request.form.get("rotulo") or "").strip()
+        if not rotulo:
+            flash("O nome não pode ficar vazio.", "erro")
+        else:
+            item.rotulo = rotulo[: itens_svc.LIMITE_ROTULO]
+            item.curto = ((request.form.get("curto") or "").strip() or rotulo)[: itens_svc.LIMITE_CURTO]
+            db.session.commit()
+            flash(f"“{item.rotulo}” atualizada.", "sucesso")
+    itens_svc.limpar_cache()
+    return _volta_colunas(item.grupo)
+
+
+@bp.post("/colunas/situacao/nova")
+@exige("eh_admin")
+def situacao_nova():
+    from ..services import itens as itens_svc
+
+    rotulo = (request.form.get("rotulo") or "").strip()
+    if not rotulo:
+        flash("Informe o nome da nova situação.", "erro")
+        return _volta_colunas("situacoes")
+    st = itens_svc.criar_situacao(
+        rotulo,
+        request.form.get("curto") or "",
+        request.form.get("simbolo") or "",
+        request.form.get("cor") or "",
+        bool(request.form.get("pendente")),
+    )
+    flash(f"Situação “{st.rotulo}” adicionada.", "sucesso")
+    return _volta_colunas("situacoes")
+
+
+@bp.post("/colunas/situacao/<int:situacao_id>")
+@exige("eh_admin")
+def situacao_editar(situacao_id: int):
+    from ..services import itens as itens_svc
+
+    st = db.session.get(Situacao, situacao_id) or abort(404)
+    acao = request.form.get("acao", "salvar")
+    if acao in ("subir", "descer"):
+        itens_svc.mover(st, -1 if acao == "subir" else 1)
+    elif acao == "alternar":
+        st.ativo = not st.ativo
+        db.session.commit()
+        flash(f"Situação “{st.rotulo}” {'reexibida' if st.ativo else 'ocultada'}.", "sucesso")
+    elif acao == "excluir":
+        usos = itens_svc.uso_situacao(st)
+        if usos:
+            flash(f"“{st.rotulo}” está em {usos} processo(s). Oculte-a para preservar o histórico.", "erro")
+        else:
+            db.session.delete(st)
+            db.session.commit()
+            flash(f"Situação “{st.rotulo}” excluída.", "sucesso")
+    else:
+        rotulo = (request.form.get("rotulo") or "").strip()
+        if not rotulo:
+            flash("O nome não pode ficar vazio.", "erro")
+        else:
+            st.rotulo = rotulo[:60]
+            st.curto = ((request.form.get("curto") or "").strip() or rotulo)[:20]
+            st.simbolo = ((request.form.get("simbolo") or "").strip() or "•")[:4]
+            st.cor = itens_svc.cor_valida(request.form.get("cor"))
+            st.pendente = bool(request.form.get("pendente"))
+            db.session.commit()
+            flash(f"Situação “{st.rotulo}” atualizada.", "sucesso")
+    itens_svc.limpar_cache()
+    return _volta_colunas("situacoes")

@@ -20,6 +20,7 @@
   </header>
 
   <aside class="lateral" id="lateral">
+    <button type="button" class="recolher" data-recolher aria-label="Recolher ou expandir o menu" title="Recolher/expandir menu">{{ icone('esquerda') }}</button>
     <a class="marca" href="{{ url_for('auth.inicio') }}">
       <span class="marca-selo">{{ config_sfx.sigla }}</span>
       <span class="marca-nome">{{ config_sfx.nome }}<small>Sistema de produção · {{ config_sfx.instituicao }}</small></span>
@@ -27,35 +28,38 @@
 
     <nav class="nav" aria-label="Principal">
       {% if current_user.eh_analista %}
-        <a href="{{ url_for('producao.minha_producao') }}" {% if ep == 'producao.minha_producao' %}aria-current="page"{% endif %}>{{ icone('grade') }}Minha produção</a>
-        <a href="{{ url_for('producao.pendencias') }}" {% if ep == 'producao.pendencias' and not request.args.get('analista_id') and not request.args.get('equipe') %}aria-current="page"{% endif %}>{{ icone('alerta') }}Pendências</a>
-        <a href="{{ url_for('producao.estatisticas') }}" {% if ep == 'producao.estatisticas' %}aria-current="page"{% endif %}>{{ icone('grafico') }}Meus números</a>
+        <a href="{{ url_for('producao.minha_producao') }}" {% if ep == 'producao.minha_producao' %}aria-current="page"{% endif %} title="Minha produção">{{ icone('grade') }}<span>Minha produção</span></a>
+        <a href="{{ url_for('producao.pendencias') }}" {% if ep == 'producao.pendencias' and not request.args.get('analista_id') and not request.args.get('equipe') %}aria-current="page"{% endif %} title="Pendências">{{ icone('alerta') }}<span>Pendências</span></a>
+        <a href="{{ url_for('producao.estatisticas') }}" {% if ep == 'producao.estatisticas' %}aria-current="page"{% endif %} title="Meus números">{{ icone('grafico') }}<span>Meus números</span></a>
       {% endif %}
 
       {% if current_user.eh_gestor %}
         <span class="nav-grupo">Gestão</span>
-        <a href="{{ url_for('gestao.painel') }}" {% if ep in ('gestao.painel', 'gestao.analista') %}aria-current="page"{% endif %}>{{ icone('painel') }}Painel da equipe</a>
-        <a href="{{ url_for('gestao.setor') }}" {% if ep == 'gestao.setor' %}aria-current="page"{% endif %}>{{ icone('setor') }}Visão do setor</a>
+        <a href="{{ url_for('gestao.painel') }}" {% if ep in ('gestao.painel', 'gestao.analista') %}aria-current="page"{% endif %} title="Painel da equipe">{{ icone('painel') }}<span>Painel da equipe</span></a>
+        <a href="{{ url_for('gestao.setor') }}" {% if ep == 'gestao.setor' %}aria-current="page"{% endif %} title="Visão do setor">{{ icone('setor') }}<span>Visão do setor</span></a>
       {% endif %}
 
       {% if current_user.edita_equipe %}
         {% if current_user.eh_gestor %}{% else %}<span class="nav-grupo">Equipe</span>{% endif %}
-        <a href="{{ url_for('producao.equipe') }}" {% if ep == 'producao.equipe' %}aria-current="page"{% endif %}>{{ icone('equipe') }}Produção da equipe</a>
-        <a href="{{ url_for('producao.pendencias', equipe=1) }}" {% if ep == 'producao.pendencias' and (not current_user.eh_analista or request.args.get('analista_id') or request.args.get('equipe')) %}aria-current="page"{% endif %}>{{ icone('alerta') }}Pendências da equipe</a>
+        <a href="{{ url_for('producao.equipe') }}" {% if ep == 'producao.equipe' %}aria-current="page"{% endif %} title="Produção da equipe">{{ icone('equipe') }}<span>Produção da equipe</span></a>
+        <a href="{{ url_for('producao.pendencias', equipe=1) }}" {% if ep == 'producao.pendencias' and (not current_user.eh_analista or request.args.get('analista_id') or request.args.get('equipe')) %}aria-current="page"{% endif %} title="Pendências da equipe">{{ icone('alerta') }}<span>Pendências da equipe</span></a>
       {% endif %}
 
       {% if current_user.acessa_plano_acao %}
         <span class="nav-grupo">Acompanhamento</span>
-        <a href="{{ url_for('plano.indice') }}" {% if ep and ep.startswith('plano.') %}aria-current="page"{% endif %}>{{ icone('alvo') }}Plano de ação</a>
+        <a href="{{ url_for('plano.indice') }}" {% if ep and ep.startswith('plano.') %}aria-current="page"{% endif %} title="Plano de ação">{{ icone('alvo') }}<span>Plano de ação</span></a>
       {% endif %}
 
       {% if current_user.eh_gestor %}
-        <a href="{{ url_for('admin.usuarios') }}" {% if ep and ep.startswith('admin.') %}aria-current="page"{% endif %}>{{ icone('usuarios') }}Usuários</a>
+        <a href="{{ url_for('admin.usuarios') }}" {% if ep and ep.startswith('admin.') and ep != 'admin.colunas' %}aria-current="page"{% endif %} title="Usuários">{{ icone('usuarios') }}<span>Usuários</span></a>
+      {% endif %}
+      {% if current_user.eh_admin %}
+        <a href="{{ url_for('admin.colunas') }}" {% if ep == 'admin.colunas' %}aria-current="page"{% endif %} title="Colunas e situações">{{ icone('colunas') }}<span>Colunas e situações</span></a>
       {% endif %}
     </nav>
 
     <div class="lateral-rodape">
-      <div class="perfil">
+      <div class="perfil" title="{{ current_user.nome }} · {{ current_user.papel_rotulo }}">
         <span class="avatar" aria-hidden="true">{{ current_user.iniciais }}</span>
         <span class="perfil-nome">{{ current_user.nome }}<small>{{ current_user.papel_rotulo }}{% if current_user.modalidade %} · {{ C.MODALIDADES.get(current_user.modalidade, current_user.modalidade) }}{% endif %}</small></span>
       </div>

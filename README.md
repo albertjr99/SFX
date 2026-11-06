@@ -17,7 +17,9 @@ Sistema web da **Subgerência de Fixação (SFX)** para registrar, acompanhar e 
 
 Destaques:
 
-- **Grade de produção** com semanas úteis do mês, semana atual marcada, contagens que se atualizam enquanto você digita, linhas que entram e saem sem recarregar, aviso de alterações não salvas, `Ctrl+S` para salvar e impressão por semana.
+- **Grade de produção** em abas por semana (setas ou `Alt+←/→`; aba "Todas" para ver o mês inteiro), semana atual marcada, contagens ao vivo, linhas que entram e saem sem recarregar, aviso de alterações não salvas, `Ctrl+S` para salvar e impressão por semana. Cabe na tela sem rolagem lateral; o menu lateral recolhe para só ícones.
+- **Seletor de mês**: clique no nome do mês para escolher qualquer mês/ano.
+- **Colunas e situações configuráveis** (administradores): atividades da grade, documentos da conferência e situações (nome, símbolo, cor, se contam como pendência) podem ser criados, renomeados, reordenados, ocultados e — se nunca usados — excluídos. Ocultar preserva o histórico.
 - **Busca** por nº do processo ou nome do segurado em todos os meses, com link direto para a linha.
 - **Pendências**: tudo que está *tramitado*, *aguardando orientação* ou *a acompanhar* aparece automaticamente; dá para arquivar, reabrir e registrar a resolução.
 - **Painel da equipe** e **visão do setor** com gráficos (Chart.js servido localmente — funciona sem internet na intranet).

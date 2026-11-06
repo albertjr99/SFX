@@ -18,8 +18,14 @@ class Campo:
     curto: str
 
 
+GRUPO_ATIVIDADE = "atividade"
+GRUPO_DOCUMENTO = "documento"
+GRUPOS_ITENS = {GRUPO_ATIVIDADE: "Atividades (colunas da grade)", GRUPO_DOCUMENTO: "Conferência documental"}
+
+# Itens padrão — só usados para criar a configuração inicial; depois disso,
+# as colunas são editadas pelos administradores (tabela item_grade).
 # Atividades que contam como produção (checkboxes da grade).
-ATIVIDADES: tuple[Campo, ...] = (
+ATIVIDADES_PADRAO: tuple[Campo, ...] = (
     Campo("homologacao", "Homologação", "Homolog."),
     Campo("fixacao_civil", "Fixação civil", "Fix. civil"),
     Campo("in_68", "IN 68", "IN 68"),
@@ -30,11 +36,9 @@ ATIVIDADES: tuple[Campo, ...] = (
     Campo("diligencia", "Diligência", "Diligência"),
     Campo("outros", "Outros", "Outros"),
 )
-CHAVES_ATIVIDADES: tuple[str, ...] = tuple(c.chave for c in ATIVIDADES)
-ROTULO_ATIVIDADE = {c.chave: c.rotulo for c in ATIVIDADES}
 
 # Checklist da conferência documental (sub-linha de cada processo).
-DOCUMENTOS: tuple[Campo, ...] = (
+DOCUMENTOS_PADRAO: tuple[Campo, ...] = (
     Campo("rg_cpf_doc", "RG / CPF", "RG/CPF"),
     Campo("comp_residencia_doc", "Comprovante de residência", "Comp. resid."),
     Campo("cert_nasc_casamento_doc", "Certidão de nascimento / casamento", "Cert. nasc./cas."),
@@ -54,30 +58,28 @@ DOCUMENTOS: tuple[Campo, ...] = (
     Campo("fixacao_o_doc", "Fixação O", "Fixação O"),
     Campo("siarhes_doc", "SIARHES", "SIARHES"),
 )
-CHAVES_DOCUMENTOS: tuple[str, ...] = tuple(c.chave for c in DOCUMENTOS)
 
 CAMPOS_TEXTO: tuple[str, ...] = ("numero_processo", "nome_do_segurado", "setor", "observacoes")
 
 
 @dataclass(frozen=True)
-class Status:
+class StatusPadrao:
     chave: str
     rotulo: str
-    simbolo: str
     curto: str
+    simbolo: str
+    cor: str
+    pendente: bool
 
 
-STATUS: tuple[Status, ...] = (
-    Status("finalizado", "Finalizado", "X", "Finalizado"),
-    Status("tramitado", "Tramitado – aguardando", "»»", "Tramitado"),
-    Status("aguardando", "Aguardando orientação da chefia", "?", "Aguardando"),
-    Status("acompanhar", "Acompanhar mesmo após envio", "!", "Acompanhar"),
-    Status("conferido", "Conferido e encaminhado", "✓", "Conferido"),
+# Situações padrão — só para criar a configuração inicial (depois, tabela "situacao").
+STATUS_PADRAO: tuple[StatusPadrao, ...] = (
+    StatusPadrao("finalizado", "Finalizado", "Finalizado", "X", "#2c6493", False),
+    StatusPadrao("tramitado", "Tramitado – aguardando", "Tramitado", "»»", "#f3c04a", True),
+    StatusPadrao("aguardando", "Aguardando orientação da chefia", "Aguardando", "?", "#c7d0d9", True),
+    StatusPadrao("acompanhar", "Acompanhar mesmo após envio", "Acompanhar", "!", "#e88fb1", True),
+    StatusPadrao("conferido", "Conferido e encaminhado", "Conferido", "✓", "#45a079", False),
 )
-STATUS_POR_CHAVE = {s.chave: s for s in STATUS}
-# Status que mantêm o processo na lista de pendências do analista.
-STATUS_PENDENTES: tuple[str, ...] = ("tramitado", "aguardando", "acompanhar")
-
 
 # Perfis de acesso -----------------------------------------------------------
 PERFIL_ANALISTA = "analista"

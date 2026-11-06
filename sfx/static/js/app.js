@@ -29,6 +29,53 @@
     }
   });
 
+  // Menu lateral recolhível (preferência guardada neste navegador)
+  const botaoRecolher = $("[data-recolher]");
+  if (app && botaoRecolher) {
+    let pref = null;
+    try { pref = localStorage.getItem("sfx-menu"); } catch (_) { /* sem storage */ }
+    const recolher = pref ? pref === "recolhido" : window.innerWidth < 1600;
+    app.classList.toggle("recolhida", recolher);
+    botaoRecolher.addEventListener("click", () => {
+      const r = app.classList.toggle("recolhida");
+      try { localStorage.setItem("sfx-menu", r ? "recolhido" : "expandido"); } catch (_) { /* sem storage */ }
+    });
+    $(".perfil")?.addEventListener("click", () => {
+      if (app.classList.contains("recolhida")) botaoRecolher.click();
+    });
+  }
+
+  // Seletor de mês: troca o ano dentro do quadro sem recarregar
+  $$("[data-mes-nav]").forEach((nav) => {
+    const modelo = nav.dataset.modelo;
+    const anoAtual = Number(nav.dataset.ano);
+    const mesAtual = Number(nav.dataset.mes);
+    let ano = anoAtual;
+    const exibido = nav.querySelector("[data-ano-exibido]");
+    const atualizar = () => {
+      exibido.textContent = ano;
+      nav.querySelectorAll(".mes-grade a").forEach((a) => {
+        const m = Number(a.dataset.mes);
+        a.href = modelo.replace("ano=9999", `ano=${ano}`).replace("mes=99", `mes=${m}`);
+        a.classList.toggle("selecionado", ano === anoAtual && m === mesAtual);
+        a.classList.toggle("hoje", ano === Number(nav.dataset.hojeAno) && m === Number(nav.dataset.hojeMes));
+      });
+    };
+    nav.querySelectorAll("[data-mudar-ano]").forEach((b) =>
+      b.addEventListener("click", () => {
+        ano += Number(b.dataset.mudarAno);
+        atualizar();
+      })
+    );
+    const det = nav.querySelector("details");
+    document.addEventListener("click", (e) => {
+      if (det.open && !det.contains(e.target)) det.open = false;
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") det.open = false;
+    });
+  });
+
   // Tela cheia
   $("[data-tela-cheia]")?.addEventListener("click", () => {
     if (!document.fullscreenElement) document.documentElement.requestFullscreen?.();
@@ -147,7 +194,7 @@
     const el = location.hash.startsWith("#linha-") && document.querySelector(location.hash);
     if (!el) return;
     el.classList.add("destacada");
-    el.scrollIntoView({ block: "center" });
+    setTimeout(() => el.scrollIntoView({ block: "center" }), 50);
     setTimeout(() => el.classList.remove("destacada"), 3500);
   };
   window.addEventListener("hashchange", destacar);

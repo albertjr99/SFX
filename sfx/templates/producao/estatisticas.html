@@ -43,7 +43,7 @@
   <div><dt>Atividades</dt><dd>{{ total|numero }}</dd></div>
   <div><dt>Processos distintos</dt><dd>{{ processos|numero }}</dd></div>
   {% set maior = valores.items()|sort(attribute='1', reverse=true)|first %}
-  {% if maior and maior[1] %}<div><dt>Mais frequente</dt><dd style="font-size:1.15rem;padding-top:6px">{{ C.ROTULO_ATIVIDADE[maior[0]] }} <small>{{ maior[1] }}</small></dd></div>{% endif %}
+  {% if maior and maior[1] %}<div><dt>Mais frequente</dt><dd style="font-size:1.15rem;padding-top:6px">{{ rotulo_item(maior[0]) }} <small>{{ maior[1] }}</small></dd></div>{% endif %}
 </dl>
 
 <div class="grade-2">
@@ -66,19 +66,19 @@
   <div class="painel-titulo"><h2>{{ 'Contagem mensal' if visao == 'ano' else 'Contagem semanal' }}</h2></div>
   <div class="painel-corpo tabela-envolta">
     <table class="tabela">
-      <thead><tr><th>{{ 'Mês' if visao == 'ano' else 'Semana' }}</th>{% for a in C.ATIVIDADES %}<th class="num">{{ a.curto }}</th>{% endfor %}<th class="num">Total</th></tr></thead>
+      <thead><tr><th>{{ 'Mês' if visao == 'ano' else 'Semana' }}</th>{% for a in atividades %}<th class="num">{{ a.curto }}</th>{% endfor %}<th class="num">Total</th></tr></thead>
       <tbody>
         {% set linhas = serie_ano if visao == 'ano' else por_semana %}
         {% for rotulo, vals in linhas.items() %}
         <tr {% if visao == 'semana' and rotulo == semana %}class="destacada"{% endif %}>
           <td>{{ rotulo }}</td>
-          {% for a in C.ATIVIDADES %}<td class="num {{ 'zero' if not vals[a.chave] }}">{{ vals[a.chave] }}</td>{% endfor %}
+          {% for a in atividades %}<td class="num {{ 'zero' if not vals[a.chave] }}">{{ vals[a.chave] }}</td>{% endfor %}
           <td class="num"><strong>{{ vals.values()|sum }}</strong></td>
         </tr>
         {% endfor %}
       </tbody>
       <tfoot><tr><td>Total</td>
-        {% for a in C.ATIVIDADES %}<td class="num">{{ linhas.values()|map(attribute=a.chave)|sum }}</td>{% endfor %}
+        {% for a in atividades %}<td class="num">{{ linhas.values()|map(attribute=a.chave)|sum }}</td>{% endfor %}
         <td class="num">{% set ns = namespace(t=0) %}{% for v in linhas.values() %}{% set ns.t = ns.t + v.values()|sum %}{% endfor %}{{ ns.t }}</td></tr></tfoot>
     </table>
   </div>

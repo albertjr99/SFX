@@ -14,6 +14,10 @@ Reescrita completa sobre a mesma base de dados.
 - Comandos `flask usuarios`, `flask plano`, `flask demo`.
 - Testes automatizados (pytest), lint (ruff), CI no GitHub Actions, Dockerfile e docker-compose.
 
+### Grade e configuração
+- Semanas em abas, seletor de mês em grade, legenda sempre visível, menu lateral recolhível e grade sem rolagem horizontal.
+- Colunas (atividades e documentos) e situações passam a ser configuráveis pelos administradores (migração e6f0a2b3c4d8 converte as marcações antigas sem perdas).
+
 ### Administrador
 - Papel de administrador somado ao perfil (Lucas: analista + administrador): acesso total, gestão de administradores, exclusão de acessos sem produção e de ciclos do plano de ação, com proteção contra ficar sem administrador.
 

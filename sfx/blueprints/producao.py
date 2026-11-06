@@ -5,16 +5,13 @@ from flask_login import current_user, login_required
 from sqlalchemy import or_
 
 from ..constants import (
-    ATIVIDADES,
-    CHAVES_ATIVIDADES,
     MESES,
     PERFIL_ANALISTA,
-    STATUS_PENDENTES,
-    STATUS_POR_CHAVE,
 )
 from ..extensions import db
 from ..models import LinhaProducao, Usuario, agora_utc
 from ..security import exige, perfis_requeridos
+from ..services import itens as itens_svc
 from ..services import producao as svc
 from ..services.periodo import Periodo, mes_numero, semana_atual
 
@@ -39,7 +36,7 @@ def _render_grade(alvo: Usuario, periodo: Periodo, endpoint: str, extra_args: di
 
     grade = svc.carregar_grade(alvo.id, periodo)
     por_semana = svc.contagem_por_semana(alvo.id, periodo)
-    total_mes = {c: sum(s[c] for s in por_semana.values()) for c in CHAVES_ATIVIDADES}
+    total_mes = {c: sum(s[c] for s in por_semana.values()) for c in itens_svc.chaves_atividades()}
     return render_template(
         "producao/grade.html",
         alvo=alvo,
@@ -92,21 +89,21 @@ def render_estatisticas(alvo: Usuario, endpoint: str, extra_args: dict | None = 
     serie_ano = svc.serie_mensal(periodo.ano, alvo.id)
 
     if visao == "semana":
-        valores = por_semana.get(semana, {c: 0 for c in CHAVES_ATIVIDADES})
+        valores = por_semana.get(semana, dict.fromkeys(itens_svc.chaves_atividades(), 0))
         processos = svc.processos_distintos(usuario_id=alvo.id, ano=periodo.ano, mes=periodo.nome_mes, semana=semana)
         titulo = f"Semana {semana}"
     elif visao == "ano":
-        valores = {c: sum(m[c] for m in serie_ano.values()) for c in CHAVES_ATIVIDADES}
+        valores = {c: sum(m[c] for m in serie_ano.values()) for c in itens_svc.chaves_atividades()}
         processos = svc.processos_distintos(usuario_id=alvo.id, ano=periodo.ano)
         titulo = f"Ano de {periodo.ano}"
     else:
-        valores = {c: sum(s[c] for s in por_semana.values()) for c in CHAVES_ATIVIDADES}
+        valores = {c: sum(s[c] for s in por_semana.values()) for c in itens_svc.chaves_atividades()}
         processos = svc.processos_distintos(usuario_id=alvo.id, ano=periodo.ano, mes=periodo.nome_mes)
         titulo = periodo.rotulo
 
     grafico = {
-        "atividades": [a.rotulo for a in ATIVIDADES],
-        "valores": [valores[c] for c in CHAVES_ATIVIDADES],
+        "atividades": [a.rotulo for a in itens_svc.atividades()],
+        "valores": [valores[c] for c in itens_svc.chaves_atividades()],
         "semanas": list(por_semana.keys()),
         "por_semana": [sum(v.values()) for v in por_semana.values()],
         "meses": list(MESES),
@@ -167,7 +164,7 @@ def pendencias():
     if alvo is not None:
         linhas = (
             LinhaProducao.query.filter(LinhaProducao.usuario_id == alvo.id)
-            .filter(or_(LinhaProducao.status.in_(STATUS_PENDENTES), LinhaProducao.removido.is_(True)))
+            .filter(or_(LinhaProducao.status.in_(itens_svc.chaves_pendentes()), LinhaProducao.removido.is_(True)))
             .order_by(LinhaProducao.data_registro.asc())
             .all()
         )
@@ -181,7 +178,7 @@ def pendencias():
         pode_editar=pode_editar,
         analistas=analistas_ativos() if current_user.edita_equipe else [],
         proprio=alvo is not None and alvo.id == current_user.id,
-        status_pendentes=[STATUS_POR_CHAVE[s] for s in STATUS_PENDENTES],
+        status_pendentes=[st for st in itens_svc.situacoes() if st.pendente],
         semanas_ano=svc.semanas_por_mes_do_ano(hoje.ano),
         hoje=hoje,
     )
@@ -201,7 +198,7 @@ def _acao_pendencia(alvo: Usuario):
             mes not in MESES
             or not ano
             or semana not in Periodo(ano, mes_numero(mes)).semanas
-            or status not in STATUS_PENDENTES
+            or status not in itens_svc.chaves_pendentes()
             or not numero
         ):
             flash("Preencha mês, semana, número do processo e status.", "erro")
@@ -276,7 +273,7 @@ def api_busca():
                 "mes": l.mes,
                 "ano": l.ano,
                 "semana": l.semana,
-                "status": STATUS_POR_CHAVE[l.status].rotulo if l.status in STATUS_POR_CHAVE else "",
+                "status": st.rotulo if (st := itens_svc.situacao(l.status)) else "",
                 "url": link(l),
             }
             for l in linhas

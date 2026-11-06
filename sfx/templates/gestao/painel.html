@@ -27,7 +27,7 @@
       <thead>
         <tr>
           <th>Analista</th>
-          {% for a in C.ATIVIDADES %}<th class="num" title="{{ a.rotulo }}">{{ a.curto }}</th>{% endfor %}
+          {% for a in atividades %}<th class="num" title="{{ a.rotulo }}">{{ a.curto }}</th>{% endfor %}
           <th class="num">Total</th>
           <th style="min-width:120px"><span class="sr-only">Proporção da referência</span></th>
         </tr>
@@ -37,16 +37,16 @@
         <tr>
           <td style="white-space:nowrap"><a href="{{ url_for('gestao.analista', analista_id=r.usuario.id, **periodo.args()) }}"><strong>{{ r.usuario.nome }}</strong></a> <span class="dica">{{ C.MODALIDADES.get(r.usuario.modalidade, '') }}</span>
             <div class="dica nao-imprimir"><a href="{{ url_for('producao.equipe', analista_id=r.usuario.id, **periodo.args()) }}">Grade</a> · <a href="{{ url_for('producao.pendencias', analista_id=r.usuario.id) }}">Pendências</a></div></td>
-          {% for a in C.ATIVIDADES %}<td class="num {{ 'zero' if not r.valores[a.chave] }}">{{ r.valores[a.chave] }}</td>{% endfor %}
+          {% for a in atividades %}<td class="num {{ 'zero' if not r.valores[a.chave] }}">{{ r.valores[a.chave] }}</td>{% endfor %}
           <td class="num"><strong>{{ r.total }}</strong></td>
           <td style="vertical-align:middle"><div class="barra" title="{{ r.total }} de {{ referencia }}"><span style="width:{{ [100, (r.total / referencia * 100) if referencia else 0]|min|round(1) }}%"></span></div></td>
         </tr>
         {% else %}
-        <tr><td colspan="{{ C.ATIVIDADES|length + 3 }}" class="vazio-bloco">Nenhum analista ativo. Cadastre a equipe em <a href="{{ url_for('admin.usuarios') }}">Usuários</a>.</td></tr>
+        <tr><td colspan="{{ atividades|length + 3 }}" class="vazio-bloco">Nenhum analista ativo. Cadastre a equipe em <a href="{{ url_for('admin.usuarios') }}">Usuários</a>.</td></tr>
         {% endfor %}
       </tbody>
       {% if ranking %}
-      <tfoot><tr><td>Equipe</td>{% for a in C.ATIVIDADES %}<td class="num">{{ total_mes[a.chave] }}</td>{% endfor %}<td class="num">{{ total }}</td><td></td></tr></tfoot>
+      <tfoot><tr><td>Equipe</td>{% for a in atividades %}<td class="num">{{ total_mes[a.chave] }}</td>{% endfor %}<td class="num">{{ total }}</td><td></td></tr></tfoot>
       {% endif %}
     </table>
   </div>

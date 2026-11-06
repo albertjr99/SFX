@@ -15,6 +15,9 @@ def app():
     app = create_app("testing")
     with app.app_context():
         db.create_all()
+        from sfx.services.itens import semear_padrao
+
+        semear_padrao()
         yield app
         db.session.remove()
         db.drop_all()
@@ -50,3 +53,10 @@ def entrar(client):
         return client.post("/login", data={"usuario": nome, "senha": senha})
 
     return _entrar
+
+
+def marcar(linha, *chaves):
+    """Marca atividades/documentos (pelas chaves) numa LinhaProducao."""
+    from sfx.models import ItemGrade
+
+    linha.itens = list(linha.itens) + ItemGrade.query.filter(ItemGrade.chave.in_(chaves)).all()

@@ -43,8 +43,8 @@ def test_cria_apenas_linhas_com_conteudo(app, usuarios):
     assert r.criadas == 2
     linhas = svc.linhas_do_mes(ana.id, JUL)
     assert [l.indice_linha for l in linhas] == [0, 1]
-    assert linhas[0].homologacao and linhas[0].ano == 2025 and linhas[0].mes == "Julho"
-    assert linhas[1].rg_cpf_doc and not linhas[1].homologacao
+    assert "homologacao" in linhas[0].chaves_marcadas and linhas[0].ano == 2025 and linhas[0].mes == "Julho"
+    assert "rg_cpf_doc" in linhas[1].chaves_marcadas and "homologacao" not in linhas[1].chaves_marcadas
     assert linhas[0].atualizado_por_id == ana.id
 
 
@@ -88,7 +88,7 @@ def test_atualiza_remove_e_reordena(app, usuarios):
     assert (r.criadas, r.atualizadas, r.removidas) == (1, 1, 2)
     restantes = svc.linhas_do_mes(ana.id, JUL)
     assert [l.numero_processo for l in restantes] == ["D", "A2"]
-    assert restantes[1].fixacao_civil
+    assert "fixacao_civil" in restantes[1].chaves_marcadas
 
 
 def test_semanas_nao_enviadas_ficam_intactas(app, usuarios):

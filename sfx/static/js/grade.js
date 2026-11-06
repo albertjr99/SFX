@@ -6,6 +6,63 @@
   if (!form) return;
 
   const modelo = document.getElementById("modelo-linha");
+
+  // ---- Abas de semanas -------------------------------------------------
+  const abas = Array.from(document.querySelectorAll("[data-aba]"));
+  const cadernos = Array.from(form.querySelectorAll(".caderno"));
+  const chaveAba = `sfx-aba:${form.dataset.chave}`;
+  form.classList.add("com-abas");
+
+  const mostrar = (alvo, focar = false) => {
+    const todas = alvo === "todas";
+    cadernos.forEach((c) => c.classList.toggle("ativa", todas || c.dataset.semana === String(alvo)));
+    abas.forEach((a) => a.setAttribute("aria-selected", String(a.dataset.aba === String(alvo))));
+    try { sessionStorage.setItem(chaveAba, String(alvo)); } catch (_) { /* sem storage */ }
+    if (focar) abas.find((a) => a.dataset.aba === String(alvo))?.focus();
+  };
+  const atual = () => abas.find((a) => a.getAttribute("aria-selected") === "true")?.dataset.aba ?? "0";
+  const passo = (delta) => {
+    const n = cadernos.length;
+    const i = atual() === "todas" ? 0 : Number(atual());
+    mostrar(Math.min(n - 1, Math.max(0, i + delta)), true);
+  };
+  abas.forEach((a) => a.addEventListener("click", () => mostrar(a.dataset.aba)));
+  document.querySelector("[data-semana-anterior]")?.addEventListener("click", () => passo(-1));
+  document.querySelector("[data-semana-seguinte]")?.addEventListener("click", () => passo(1));
+  document.addEventListener("keydown", (e) => {
+    if (e.altKey && (e.key === "ArrowLeft" || e.key === "ArrowRight")) {
+      e.preventDefault();
+      passo(e.key === "ArrowLeft" ? -1 : 1);
+    }
+  });
+  (() => {
+    // Aba inicial: linha vinda da busca > última aba usada > semana atual > primeira
+    const alvoHash = location.hash.startsWith("#linha-") && document.querySelector(location.hash);
+    if (alvoHash) return mostrar(alvoHash.closest(".caderno").dataset.semana);
+    if (location.hash.startsWith("#semana-")) return mostrar(location.hash.slice(8));
+    let salva = null;
+    try { salva = sessionStorage.getItem(chaveAba); } catch (_) { /* sem storage */ }
+    if (salva && (salva === "todas" || cadernos[Number(salva)])) return mostrar(salva);
+    const corrente = cadernos.find((c) => c.classList.contains("corrente"));
+    mostrar(corrente ? corrente.dataset.semana : "0");
+  })();
+
+  window.addEventListener("hashchange", () => {
+    const el = location.hash.startsWith("#linha-") && document.querySelector(location.hash);
+    if (el) mostrar(el.closest(".caderno").dataset.semana);
+  });
+
+  // ---- Cor da situação ---------------------------------------------------
+  const pintar = (sel) => {
+    const op = sel.selectedOptions[0];
+    if (op && op.dataset.cor) {
+      sel.style.background = op.dataset.cor;
+      sel.style.color = op.dataset.texto;
+      sel.style.borderColor = op.dataset.cor;
+    } else {
+      sel.style.background = sel.style.color = sel.style.borderColor = "";
+    }
+  };
   const estado = form.querySelector("[data-estado]");
   let sujo = false;
   let enviando = false;
@@ -37,6 +94,8 @@
       total += 1;
     });
     caderno.querySelector("[data-total]").textContent = total;
+    const badge = document.querySelector(`[data-aba-total="${caderno.dataset.semana}"]`);
+    if (badge) badge.textContent = total;
     caderno.querySelectorAll("[data-cont]").forEach((el) => {
       const v = totais[el.dataset.cont] || 0;
       el.querySelector("b").textContent = v;
@@ -91,6 +150,7 @@
       contarDocs(sub);
       marcarSujo();
     } else if (alvo.matches("[data-imprimir]")) {
+      cadernos.forEach((c) => c.classList.add("ativa"));
       document.querySelectorAll("[data-imprimir-semana]").forEach((cb) => {
         document.getElementById(`semana-${cb.dataset.imprimirSemana}`).classList.toggle("oculto-impressao", !cb.checked);
       });
@@ -108,7 +168,7 @@
   form.addEventListener("change", (e) => {
     const el = e.target;
     marcarSujo();
-    if (el.matches("select.status")) el.dataset.valor = el.value;
+    if (el.matches("select.status")) pintar(el);
     if (el.matches("input[data-atv]")) recontar(el.closest(".caderno"));
     if (el.matches("input[data-doc]")) contarDocs(el.closest("tr.docs"));
     const tr = el.closest("tr.linha");
@@ -148,10 +208,11 @@
 
   window.addEventListener("afterprint", () => {
     document.querySelectorAll(".oculto-impressao").forEach((el) => el.classList.remove("oculto-impressao"));
+    mostrar(atual());
   });
 
   // Mantém o mesmo trecho da página após salvar
-  const chave = `sfx-rolagem:${location.pathname}${location.search}`;
+  const chave = `sfx-rolagem:${form.dataset.chave}`;
   form.addEventListener("submit", () => {
     try { sessionStorage.setItem(chave, String(window.scrollY)); } catch (_) { /* sem storage */ }
   });

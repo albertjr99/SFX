@@ -16,20 +16,38 @@
 {%- elif nome == 'mais' -%}<path d="M12 5v14M5 12h14"/>
 {%- elif nome == 'menu' -%}<path d="M4 6h16M4 12h16M4 18h16"/>
 {%- elif nome == 'tela' -%}<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>
+{%- elif nome == 'colunas' -%}<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16M15 4v16"/>
 {%- elif nome == 'chave' -%}<circle cx="8" cy="15" r="4"/><path d="m11 12 9-9M17 6l3 3"/>
 {%- endif -%}
 </svg>
 {%- endmacro %}
 
 {% macro selo_status(chave) -%}
-{%- set s = C.STATUS_POR_CHAVE.get(chave) -%}
-{%- if s -%}<span class="selo st-{{ s.chave }}"><i aria-hidden="true">{{ s.simbolo }}</i>{{ s.rotulo }}</span>{%- endif -%}
+{%- set s = situacao(chave) -%}
+{%- if s -%}<span class="selo"><i aria-hidden="true" style="background:{{ s.cor }};color:{{ s.cor_texto }}">{{ s.simbolo }}</i>{{ s.rotulo }}</span>{%- endif -%}
 {%- endmacro %}
 
 {% macro mes_nav(endpoint, periodo, extra={}) -%}
-<nav class="mes-nav" aria-label="Mês">
+{%- set modelo = url_for(endpoint, **dict(extra, ano=9999, mes=99)) -%}
+<nav class="mes-nav" aria-label="Mês" data-mes-nav data-modelo="{{ modelo }}" data-ano="{{ periodo.ano }}" data-mes="{{ periodo.mes }}" data-hoje-ano="{{ periodo_hoje.ano }}" data-hoje-mes="{{ periodo_hoje.mes }}">
   <a href="{{ url_for(endpoint, **dict(periodo.anterior.args(), **extra)) }}" title="{{ periodo.anterior.rotulo }}" aria-label="Mês anterior: {{ periodo.anterior.rotulo }}">{{ icone('esquerda') }}</a>
-  <strong>{{ periodo.rotulo }}</strong>
+  <details class="mes-seletor">
+    <summary title="Escolher outro mês"><strong>{{ periodo.rotulo }}</strong><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary>
+    <div class="mes-popover" role="dialog" aria-label="Escolher mês">
+      <div class="mes-pop-ano">
+        <button type="button" data-mudar-ano="-1" aria-label="Ano anterior">{{ icone('esquerda') }}</button>
+        <strong data-ano-exibido>{{ periodo.ano }}</strong>
+        <button type="button" data-mudar-ano="1" aria-label="Próximo ano">{{ icone('direita') }}</button>
+      </div>
+      <div class="mes-grade">
+        {% for nome in C.MESES %}
+        <a data-mes="{{ loop.index }}" href="{{ url_for(endpoint, **dict(extra, ano=periodo.ano, mes=loop.index)) }}"
+           class="{{ 'selecionado' if loop.index == periodo.mes else '' }} {{ 'hoje' if loop.index == periodo_hoje.mes and periodo.ano == periodo_hoje.ano else '' }}">{{ nome[:3] }}</a>
+        {% endfor %}
+      </div>
+      <a class="mes-pop-hoje" href="{{ url_for(endpoint, **dict(periodo_hoje.args(), **extra)) }}">Ir para {{ periodo_hoje.rotulo|lower }}</a>
+    </div>
+  </details>
   <a href="{{ url_for(endpoint, **dict(periodo.seguinte.args(), **extra)) }}" title="{{ periodo.seguinte.rotulo }}" aria-label="Próximo mês: {{ periodo.seguinte.rotulo }}">{{ icone('direita') }}</a>
 </nav>
 {%- endmacro %}

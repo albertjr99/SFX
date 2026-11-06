@@ -11,29 +11,31 @@
     <button type="button" data-docs aria-expanded="false" title="Conferência documental">Docs<span class="docs-cont">{% if p and p.documentos_conferidos %} {{ p.documentos_conferidos }}{% endif %}</span></button>
   </td>
   <td class="col-status">
-    <select class="status" name="{{ uid }}__status" data-valor="{{ p.status if p else '' }}" aria-label="Situação">
+    {% set st = situacao(p.status) if p else None %}
+    <select class="status" name="{{ uid }}__status" aria-label="Situação"{% if st %} style="background:{{ st.cor }};color:{{ st.cor_texto }};border-color:{{ st.cor }}"{% endif %}>
       <option value="">—</option>
-      {% for s in C.STATUS %}<option value="{{ s.chave }}" title="{{ s.rotulo }}" {% if p and p.status == s.chave %}selected{% endif %}>{{ s.simbolo }} {{ s.curto }}</option>{% endfor %}
+      {% for s in situacoes %}<option value="{{ s.chave }}" title="{{ s.rotulo }}" data-cor="{{ s.cor }}" data-texto="{{ s.cor_texto }}" {% if p and p.status == s.chave %}selected{% endif %}>{{ s.simbolo }} {{ s.curto }}</option>{% endfor %}
+      {% if st and not st.ativo %}<option value="{{ st.chave }}" data-cor="{{ st.cor }}" data-texto="{{ st.cor_texto }}" selected>{{ st.simbolo }} {{ st.curto }} (oculta)</option>{% endif %}
     </select>
   </td>
   <td class="col-proc"><input type="text" name="{{ uid }}__numero_processo" value="{{ p.numero_processo if p and p.numero_processo else '' }}" aria-label="Número do processo" autocomplete="off"></td>
   <td class="col-nome"><input type="text" name="{{ uid }}__nome_do_segurado" value="{{ p.nome_do_segurado if p and p.nome_do_segurado else '' }}" aria-label="Nome do segurado" autocomplete="off"></td>
-  {% for a in C.ATIVIDADES %}
-  <td class="cb"><label><input type="checkbox" name="{{ uid }}__{{ a.chave }}" data-atv="{{ a.chave }}" {% if p and p[a.chave] %}checked{% endif %}><span class="sr-only">{{ a.rotulo }}</span></label></td>
+  {% for a in atividades %}
+  <td class="cb"><label><input type="checkbox" name="{{ uid }}__{{ a.chave }}" data-atv="{{ a.chave }}" {% if p and a.chave in p.chaves_marcadas %}checked{% endif %}><span class="sr-only">{{ a.rotulo }}</span></label></td>
   {% endfor %}
   <td class="col-setor"><input type="text" name="{{ uid }}__setor" value="{{ p.setor if p and p.setor else '' }}" aria-label="Setor" autocomplete="off"></td>
   <td class="col-obs"><input type="text" name="{{ uid }}__observacoes" value="{{ p.observacoes if p and p.observacoes else '' }}" aria-label="Observações" autocomplete="off"></td>
   <td class="col-acao"><button type="button" class="btn-remover" data-remover title="Remover linha" aria-label="Remover linha">×</button></td>
 </tr>
 <tr class="docs" hidden>
-  <td colspan="{{ 7 + C.ATIVIDADES|length }}">
+  <td colspan="{{ 7 + atividades|length }}">
     <div class="docs-titulo">Conferência documental
       <button type="button" class="btn btn-pequeno btn-discreto" data-docs-todos>Marcar todos</button>
       <button type="button" class="btn btn-pequeno btn-discreto" data-docs-nenhum>Limpar</button>
     </div>
     <div class="docs-grade">
-      {% for d in C.DOCUMENTOS %}
-      <label><input type="checkbox" name="{{ uid }}__{{ d.chave }}" data-doc {% if p and p[d.chave] %}checked{% endif %}>{{ d.rotulo }}</label>
+      {% for d in documentos %}
+      <label><input type="checkbox" name="{{ uid }}__{{ d.chave }}" data-doc {% if p and d.chave in p.chaves_marcadas %}checked{% endif %}>{{ d.rotulo }}</label>
       {% endfor %}
     </div>
   </td>
@@ -62,53 +64,60 @@
 <dl class="placar nao-imprimir" style="margin:0 0 18px">
   <div><dt>Atividades no mês</dt><dd data-total-mes>{{ total_atividades|numero }}</dd></div>
   <div><dt>Processos distintos</dt><dd>{{ processos|numero }}</dd></div>
-  {% for a in C.ATIVIDADES if total_mes[a.chave] %}
+  {% for a in atividades if total_mes[a.chave] %}
     {% if loop.index <= 3 %}<div><dt>{{ a.rotulo }}</dt><dd>{{ total_mes[a.chave]|numero }}</dd></div>{% endif %}
   {% endfor %}
 </dl>
 
-<form method="post" id="form-grade" data-grade autocomplete="off">
+<form method="post" id="form-grade" data-grade data-chave="{{ alvo.id }}-{{ periodo.ano }}-{{ periodo.mes }}" autocomplete="off">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
   <div class="barra-grade">
-    <nav class="indice-semanas" aria-label="Semanas do mês">
+    <div class="abas-semanas" role="tablist" aria-label="Semanas do mês">
+      <button type="button" class="aba-seta" data-semana-anterior aria-label="Semana anterior" title="Semana anterior (Alt+←)">{{ icone('esquerda') }}</button>
       {% for s in periodo.semanas %}
-        <a href="#semana-{{ loop.index0 }}" class="{{ 'corrente' if s == semana_corrente else '' }}">{{ s }}</a>
+        <button type="button" role="tab" class="aba{{ ' corrente' if s == semana_corrente else '' }}" data-aba="{{ loop.index0 }}" aria-controls="semana-{{ loop.index0 }}" aria-selected="false">
+          <span>{{ s }}</span><b data-aba-total="{{ loop.index0 }}">{{ por_semana[s].values()|sum }}</b>
+        </button>
       {% endfor %}
-    </nav>
-    <div class="busca nao-imprimir" data-busca data-url="{{ url_for('producao.api_busca') }}">
-      {{ icone('busca') }}
-      <input type="search" placeholder="Buscar processo ou nome" aria-label="Buscar processo ou segurado em todos os meses">
-      <div class="busca-resultados" hidden></div>
+      <button type="button" role="tab" class="aba aba-todas" data-aba="todas" aria-selected="false" title="Ver todas as semanas do mês">Todas</button>
+      <button type="button" class="aba-seta" data-semana-seguinte aria-label="Próxima semana" title="Próxima semana (Alt+→)">{{ icone('direita') }}</button>
     </div>
-    <details class="nao-imprimir" style="position:relative">
-      <summary class="btn">{{ icone('imprimir') }}Imprimir</summary>
-      <div class="busca-resultados" style="padding:12px 14px;width:280px">
-        <p class="rotulo" style="margin-bottom:8px">Semanas na impressão</p>
-        {% for s in periodo.semanas %}<label class="check-linha" style="margin-bottom:4px"><input type="checkbox" data-imprimir-semana="{{ loop.index0 }}" checked> {{ s }}</label>{% endfor %}
-        <button type="button" class="btn btn-primario btn-pequeno" data-imprimir style="margin-top:8px">Imprimir selecionadas</button>
+    <div class="barra-acoes">
+      <div class="busca nao-imprimir" data-busca data-url="{{ url_for('producao.api_busca') }}">
+        {{ icone('busca') }}
+        <input type="search" placeholder="Buscar processo ou nome" aria-label="Buscar processo ou segurado em todos os meses">
+        <div class="busca-resultados" hidden></div>
       </div>
-    </details>
-    <span class="estado-salvo" data-estado aria-live="polite">Tudo salvo</span>
-    <button type="submit" class="btn btn-primario">{{ icone('salvar') }}Salvar produção</button>
+      <details class="nao-imprimir" style="position:relative">
+        <summary class="btn" title="Imprimir">{{ icone('imprimir') }}<span class="so-largo">Imprimir</span></summary>
+        <div class="busca-resultados" style="padding:12px 14px;width:280px">
+          <p class="rotulo" style="margin-bottom:8px">Semanas na impressão</p>
+          {% for s in periodo.semanas %}<label class="check-linha" style="margin-bottom:4px"><input type="checkbox" data-imprimir-semana="{{ loop.index0 }}" checked> {{ s }}</label>{% endfor %}
+          <button type="button" class="btn btn-primario btn-pequeno" data-imprimir style="margin-top:8px">Imprimir selecionadas</button>
+        </div>
+      </details>
+      <span class="estado-salvo" data-estado aria-live="polite">Tudo salvo</span>
+      <button type="submit" class="btn btn-primario">{{ icone('salvar') }}Salvar</button>
+    </div>
   </div>
 
-  <details class="nao-imprimir" style="margin:6px 0 4px">
-    <summary class="dica" style="cursor:pointer">Legenda das situações</summary>
-    <div class="legenda" style="margin-top:8px">{% for s in C.STATUS %}{{ selo_status(s.chave) }}{% endfor %}</div>
-  </details>
+  <div class="legenda legenda-fixa nao-imprimir" aria-label="Legenda das situações">
+    {% for s in situacoes %}{{ selo_status(s.chave) }}{% endfor %}
+    {% if current_user.eh_admin %}<a class="dica" href="{{ url_for('admin.colunas') }}#situacoes">Editar situações e colunas</a>{% endif %}
+  </div>
 
   {% for semana in periodo.semanas %}
   {% set w = loop.index0 %}
   {% set linhas = grade[semana] %}
-  <section class="caderno{{ ' corrente' if semana == semana_corrente else '' }}" id="semana-{{ w }}" data-semana="{{ w }}">
+  <section class="caderno{{ ' corrente' if semana == semana_corrente else '' }}" id="semana-{{ w }}" data-semana="{{ w }}" role="tabpanel">
     <input type="hidden" name="s{{ w }}" value="{{ semana }}">
     <header class="caderno-cabeca">
       <h2>Semana de {{ semana }}</h2>
       {% if semana == semana_corrente %}<span class="marcador">semana atual</span>{% endif %}
       <div class="contagem-semana" data-contagem>
         <span>Total <b data-total>{{ por_semana[semana].values()|sum }}</b></span>
-        {% for a in C.ATIVIDADES %}<span {% if not por_semana[semana][a.chave] %}hidden{% endif %} data-cont="{{ a.chave }}">{{ a.curto }} <b>{{ por_semana[semana][a.chave] }}</b></span>{% endfor %}
+        {% for a in atividades %}<span {% if not por_semana[semana][a.chave] %}hidden{% endif %} data-cont="{{ a.chave }}">{{ a.curto }} <b>{{ por_semana[semana][a.chave] }}</b></span>{% endfor %}
       </div>
     </header>
     <div class="livro-envolta">
@@ -119,7 +128,7 @@
             <th class="col-status">Situação</th>
             <th class="col-proc">Nº do processo</th>
             <th class="col-nome">Nome do segurado</th>
-            {% for a in C.ATIVIDADES %}<th class="atv" title="{{ a.rotulo }}"><span>{{ a.curto }}</span></th>{% endfor %}
+            {% for a in atividades %}<th class="atv" title="{{ a.rotulo }}"><span>{{ a.curto }}</span></th>{% endfor %}
             <th class="col-setor">Setor</th>
             <th class="col-obs">Observações</th>
             <th class="col-acao"><span class="sr-only">Remover</span></th>

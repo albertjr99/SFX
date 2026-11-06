@@ -7,14 +7,12 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 from .constants import (
     CAMPOS_TEXTO,
-    CHAVES_ATIVIDADES,
-    CHAVES_DOCUMENTOS,
+    GRUPO_DOCUMENTO,
     PERFIL_ADMIN,
     PERFIL_ANALISTA,
     PERFIS,
     PERFIS_EDICAO_EQUIPE,
     PERFIS_GESTAO,
-    STATUS_PENDENTES,
 )
 from .extensions import db
 
@@ -105,6 +103,66 @@ class Usuario(db.Model, UserMixin):
         return f"<Usuario {self.id} {self.nome!r} {self.tipo}>"
 
 
+linha_item = db.Table(
+    "linha_item",
+    db.Column("linha_id", db.Integer, db.ForeignKey("linha_producao.id", ondelete="CASCADE"), primary_key=True),
+    db.Column("item_id", db.Integer, db.ForeignKey("item_grade.id", ondelete="CASCADE"), primary_key=True),
+)
+
+
+class ItemGrade(db.Model):
+    """Coluna configurável da grade: uma atividade (conta como produção) ou um
+    documento da conferência documental. Administradores criam, renomeiam,
+    reordenam e ocultam itens; ocultar preserva o histórico."""
+
+    __tablename__ = "item_grade"
+
+    id = db.Column(db.Integer, primary_key=True)
+    grupo = db.Column(db.String(20), nullable=False, index=True)  # "atividade" | "documento"
+    chave = db.Column(db.String(60), nullable=False, unique=True)  # identificador fixo
+    rotulo = db.Column(db.String(80), nullable=False)
+    curto = db.Column(db.String(24), nullable=False)
+    ordem = db.Column(db.Integer, nullable=False, default=0)
+    ativo = db.Column(db.Boolean, nullable=False, default=True, server_default=db.true())
+
+    def __repr__(self) -> str:
+        return f"<ItemGrade {self.grupo}:{self.chave}>"
+
+
+class Situacao(db.Model):
+    """Situação de um processo na grade (Finalizado, Tramitado…), editável pelos administradores."""
+
+    __tablename__ = "situacao"
+
+    id = db.Column(db.Integer, primary_key=True)
+    chave = db.Column(db.String(40), nullable=False, unique=True)  # gravada em linha_producao.status
+    rotulo = db.Column(db.String(60), nullable=False)
+    curto = db.Column(db.String(20), nullable=False)
+    simbolo = db.Column(db.String(4), nullable=False, default="•")
+    cor = db.Column(db.String(7), nullable=False, default="#2c6493")
+    # Processos nesta situação aparecem na tela de pendências.
+    pendente = db.Column(db.Boolean, nullable=False, default=False, server_default=db.false())
+    ordem = db.Column(db.Integer, nullable=False, default=0)
+    ativo = db.Column(db.Boolean, nullable=False, default=True, server_default=db.true())
+
+    @property
+    def cor_texto(self) -> str:
+        """Preto ou branco, o que tiver mais contraste com a cor de fundo."""
+        try:
+            r, g, b = (int(self.cor[i : i + 2], 16) / 255 for i in (1, 3, 5))
+        except (TypeError, ValueError):
+            return "#ffffff"
+
+        def canal(c):
+            return c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4
+
+        luminancia = 0.2126 * canal(r) + 0.7152 * canal(g) + 0.0722 * canal(b)
+        return "#1b2633" if luminancia > 0.4 else "#ffffff"
+
+    def __repr__(self) -> str:
+        return f"<Situacao {self.chave}>"
+
+
 class LinhaProducao(db.Model):
     """Uma linha da grade semanal: um processo trabalhado por um analista."""
 
@@ -127,62 +185,36 @@ class LinhaProducao(db.Model):
     setor = db.Column(db.String(100))
     observacoes = db.Column(db.Text)
 
-    # Atividades (contam como produção)
-    homologacao = db.Column(db.Boolean, default=False)
-    diligencia = db.Column(db.Boolean, default=False)
-    fixacao_civil = db.Column(db.Boolean, default=False)
-    conf_civil = db.Column(db.Boolean, default=False)
-    registro_civil = db.Column(db.Boolean, default=False)
-    fixacao_pensao = db.Column(db.Boolean, default=False)
-    conf_pensao = db.Column(db.Boolean, default=False)
-    in_68 = db.Column(db.Boolean, default=False)
-    outros = db.Column(db.Boolean, default=False)
-
     # Pendências
     resolucao = db.Column(db.Text, default="")
     removido = db.Column(db.Boolean, default=False)
 
-    # Conferência documental
-    rg_cpf_doc = db.Column(db.Boolean, default=False)
-    comp_residencia_doc = db.Column(db.Boolean, default=False)
-    cert_nasc_casamento_doc = db.Column(db.Boolean, default=False)
-    requerimento_doc = db.Column(db.Boolean, default=False)
-    dtc_doc = db.Column(db.Boolean, default=False)
-    negativa_pad_doc = db.Column(db.Boolean, default=False)
-    contracheque_doc = db.Column(db.Boolean, default=False)
-    declaracao_chefia_doc = db.Column(db.Boolean, default=False)
-    termo_subsidio_doc = db.Column(db.Boolean, default=False)
-    declaracao_bens_doc = db.Column(db.Boolean, default=False)
-    extrato_doc = db.Column(db.Boolean, default=False)
-    qd_elevacao_doc = db.Column(db.Boolean, default=False)
-    lotacao_doc = db.Column(db.Boolean, default=False)
-    tempo_contribuicao_doc = db.Column(db.Boolean, default=False)
-    anexos_tce_doc = db.Column(db.Boolean, default=False)
-    portaria_doc = db.Column(db.Boolean, default=False)
-    fixacao_o_doc = db.Column(db.Boolean, default=False)
-    siarhes_doc = db.Column(db.Boolean, default=False)
+    # Atividades e documentos marcados (colunas configuráveis — ver ItemGrade)
+    itens = db.relationship("ItemGrade", secondary="linha_item", lazy="selectin")
 
     usuario = db.relationship("Usuario", back_populates="linhas", foreign_keys=[usuario_id])
     atualizado_por = db.relationship("Usuario", foreign_keys=[atualizado_por_id])
 
     @property
-    def atividades_marcadas(self) -> list[str]:
-        return [c for c in CHAVES_ATIVIDADES if getattr(self, c)]
+    def chaves_marcadas(self) -> set[str]:
+        return {i.chave for i in self.itens}
 
     @property
     def documentos_conferidos(self) -> int:
-        return sum(1 for c in CHAVES_DOCUMENTOS if getattr(self, c))
+        return sum(1 for i in self.itens if i.grupo == GRUPO_DOCUMENTO and i.ativo)
 
     @property
     def pendente(self) -> bool:
-        return self.status in STATUS_PENDENTES and not self.removido
+        from .services.itens import chaves_pendentes
+
+        return self.status in chaves_pendentes() and not self.removido
 
     def esta_vazia(self) -> bool:
         if any((getattr(self, c) or "").strip() for c in CAMPOS_TEXTO):
             return False
         if self.status or (self.resolucao or "").strip():
             return False
-        return not any(getattr(self, c) for c in CHAVES_ATIVIDADES + CHAVES_DOCUMENTOS)
+        return not self.itens
 
     def __repr__(self) -> str:
         return f"<LinhaProducao {self.id} {self.mes}/{self.ano} {self.numero_processo!r}>"

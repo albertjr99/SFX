@@ -157,6 +157,9 @@ def _registrar_template_helpers(app: Flask) -> None:
             return ""
         return f"{valor:.1f}%".replace(".", ",")
 
+    from .services import itens as itens_svc
+    from .services.periodo import Periodo
+
     @app.context_processor
     def contexto_global():
         return {
@@ -168,6 +171,12 @@ def _registrar_template_helpers(app: Flask) -> None:
                 "contatos": app.config["SFX_CONTATOS"],
             },
             "versao": __version__,
+            "atividades": itens_svc.ListaPreguicosa(itens_svc.atividades),
+            "documentos": itens_svc.ListaPreguicosa(itens_svc.documentos),
+            "rotulo_item": itens_svc.rotulo,
+            "situacoes": itens_svc.ListaPreguicosa(itens_svc.situacoes),
+            "situacao": itens_svc.situacao,
+            "periodo_hoje": Periodo.hoje(),
             "ano_atual": tempo.hoje().year,
             "hoje_br": tempo.formatar(tempo.hoje()),
         }

@@ -1,0 +1,115 @@
+{% extends 'base.html' %}
+{% from 'partials/_macros.html' import icone with context %}
+{% block title %}Colunas e situações{% endblock %}
+
+{% macro acoes_ordem(url, primeiro, ultimo) -%}
+<form method="post" action="{{ url }}" class="ordem">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <button type="submit" name="acao" value="subir" class="btn btn-pequeno btn-discreto" title="Mover para antes" aria-label="Mover para antes" {% if primeiro %}disabled{% endif %}>↑</button>
+  <button type="submit" name="acao" value="descer" class="btn btn-pequeno btn-discreto" title="Mover para depois" aria-label="Mover para depois" {% if ultimo %}disabled{% endif %}>↓</button>
+</form>
+{%- endmacro %}
+
+{% macro acoes_estado(url, ativo, usos, nome) -%}
+<form method="post" action="{{ url }}" style="display:inline">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <button type="submit" name="acao" value="alternar" class="btn btn-pequeno">{{ 'Ocultar' if ativo else 'Reexibir' }}</button>
+</form>
+{% if not usos %}
+<form method="post" action="{{ url }}" style="display:inline" data-confirmar="Excluir “{{ nome }}” definitivamente?">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <button type="submit" name="acao" value="excluir" class="btn btn-pequeno btn-perigo">Excluir</button>
+</form>
+{% else %}
+<span class="dica" title="Já usada {{ usos }} vez(es); oculte para preservar o histórico">em uso ({{ usos }})</span>
+{% endif %}
+{%- endmacro %}
+
+{% block content %}
+<div class="cabecalho">
+  <div>
+    <h1>Colunas e situações</h1>
+    <p>O que aparece na grade de produção de todos. Ocultar tira da tela sem apagar o que já foi registrado; excluir só é possível para o que nunca foi usado.</p>
+  </div>
+</div>
+
+<section class="painel config" id="situacoes" style="margin-bottom:18px">
+  <div class="painel-titulo"><h2>Situações</h2><small>Coluna “Situação” e legenda. Marque “pendência” para o processo aparecer na tela de pendências.</small></div>
+  <div class="painel-corpo tabela-envolta">
+    <table class="tabela config-tabela">
+      <thead><tr><th>Ordem</th><th>Prévia</th><th colspan="5">Nome · nome curto (na grade) · símbolo · cor · conta como pendência</th><th></th><th></th></tr></thead>
+      <tbody>
+        {% for st, usos in lista_situacoes %}
+        {% set url = url_for('admin.situacao_editar', situacao_id=st.id) %}
+        <tr {% if not st.ativo %}class="inativo"{% endif %}>
+          <td>{{ acoes_ordem(url, loop.first, loop.last) }}</td>
+          <td><span class="selo"><i style="background:{{ st.cor }};color:{{ st.cor_texto }}">{{ st.simbolo }}</i>{{ st.curto }}</span>{% if not st.ativo %} <span class="etiqueta">oculta</span>{% endif %}</td>
+          <td colspan="5">
+            <form method="post" action="{{ url }}" class="linha-config" id="f-st-{{ st.id }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="text" name="rotulo" value="{{ st.rotulo }}" maxlength="60" aria-label="Nome" required>
+              <input type="text" name="curto" value="{{ st.curto }}" maxlength="20" aria-label="Nome curto">
+              <input type="text" name="simbolo" value="{{ st.simbolo }}" maxlength="4" aria-label="Símbolo" class="estreito">
+              <input type="color" name="cor" value="{{ st.cor }}" aria-label="Cor">
+              <label class="check-linha"><input type="checkbox" name="pendente" value="1" {% if st.pendente %}checked{% endif %}> pendência</label>
+            </form>
+          </td>
+          <td><button type="submit" form="f-st-{{ st.id }}" name="acao" value="salvar" class="btn btn-pequeno btn-primario">Salvar</button></td>
+          <td style="white-space:nowrap">{{ acoes_estado(url, st.ativo, usos, st.rotulo) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <form method="post" action="{{ url_for('admin.situacao_nova') }}" class="linha-config nova">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <strong>Nova situação</strong>
+      <input type="text" name="rotulo" placeholder="Nome (ex.: Devolvido ao protocolo)" maxlength="60" required aria-label="Nome da nova situação">
+      <input type="text" name="curto" placeholder="Nome curto" maxlength="20" aria-label="Nome curto">
+      <input type="text" name="simbolo" placeholder="Símbolo" maxlength="4" class="estreito" aria-label="Símbolo">
+      <input type="color" name="cor" value="#6b5ca5" aria-label="Cor">
+      <label class="check-linha"><input type="checkbox" name="pendente" value="1"> pendência</label>
+      <button type="submit" class="btn btn-primario btn-pequeno">{{ icone('mais') }}Adicionar</button>
+    </form>
+  </div>
+</section>
+
+{% for g in grupos %}
+<section class="painel config" id="{{ g.grupo }}" style="margin-bottom:18px">
+  <div class="painel-titulo">
+    <h2>{{ g.titulo }}</h2>
+    <small>{% if g.grupo == 'atividade' %}Cada uma vira uma coluna da grade e conta como produção nos painéis.{% else %}Itens da lista “Docs” de cada processo.{% endif %}</small>
+  </div>
+  <div class="painel-corpo tabela-envolta">
+    <table class="tabela config-tabela">
+      <thead><tr><th>Ordem</th><th>Nome</th><th>Nome curto ({{ 'título da coluna' if g.grupo == 'atividade' else 'resumo' }})</th><th></th><th></th></tr></thead>
+      <tbody>
+        {% for item, usos in g.itens %}
+        {% set url = url_for('admin.coluna_editar', item_id=item.id) %}
+        <tr {% if not item.ativo %}class="inativo"{% endif %}>
+          <td>{{ acoes_ordem(url, loop.first, loop.last) }}</td>
+          <td colspan="2">
+            <form method="post" action="{{ url }}" class="linha-config" id="f-it-{{ item.id }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="text" name="rotulo" value="{{ item.rotulo }}" maxlength="80" aria-label="Nome" required>
+              <input type="text" name="curto" value="{{ item.curto }}" maxlength="24" aria-label="Nome curto">
+              {% if not item.ativo %}<span class="etiqueta">oculta</span>{% endif %}
+            </form>
+          </td>
+          <td><button type="submit" form="f-it-{{ item.id }}" name="acao" value="salvar" class="btn btn-pequeno btn-primario">Salvar</button></td>
+          <td style="white-space:nowrap">{{ acoes_estado(url, item.ativo, usos, item.rotulo) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <form method="post" action="{{ url_for('admin.coluna_nova') }}" class="linha-config nova">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="grupo" value="{{ g.grupo }}">
+      <strong>{{ 'Nova coluna' if g.grupo == 'atividade' else 'Novo documento' }}</strong>
+      <input type="text" name="rotulo" placeholder="Nome" maxlength="80" required aria-label="Nome">
+      <input type="text" name="curto" placeholder="Nome curto (opcional)" maxlength="24" aria-label="Nome curto">
+      <button type="submit" class="btn btn-primario btn-pequeno">{{ icone('mais') }}Adicionar</button>
+    </form>
+  </div>
+</section>
+{% endfor %}
+{% endblock %}

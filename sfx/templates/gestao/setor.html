@@ -20,7 +20,7 @@
 <dl class="placar" style="margin-bottom:18px">
   <div><dt>Atividades no ano</dt><dd>{{ total|numero }}</dd></div>
   {% set top = totais.items()|sort(attribute='1', reverse=true)|list %}
-  {% for chave, v in top[:3] if v %}<div><dt>{{ C.ROTULO_ATIVIDADE[chave] }}</dt><dd>{{ v|numero }}</dd></div>{% endfor %}
+  {% for chave, v in top[:3] if v %}<div><dt>{{ rotulo_item(chave) }}</dt><dd>{{ v|numero }}</dd></div>{% endfor %}
 </dl>
 
 <section class="painel" style="margin-bottom:18px">
@@ -31,13 +31,13 @@
 <section class="painel">
   <div class="painel-corpo tabela-envolta">
     <table class="tabela">
-      <thead><tr><th>Mês</th>{% for a in C.ATIVIDADES %}<th class="num" title="{{ a.rotulo }}">{{ a.curto }}</th>{% endfor %}<th class="num">Total</th></tr></thead>
+      <thead><tr><th>Mês</th>{% for a in atividades %}<th class="num" title="{{ a.rotulo }}">{{ a.curto }}</th>{% endfor %}<th class="num">Total</th></tr></thead>
       <tbody>
         {% for mes, vals in serie.items() %}
-        <tr><td>{{ mes }}</td>{% for a in C.ATIVIDADES %}<td class="num {{ 'zero' if not vals[a.chave] }}">{{ vals[a.chave] }}</td>{% endfor %}<td class="num"><strong>{{ vals.values()|sum }}</strong></td></tr>
+        <tr><td>{{ mes }}</td>{% for a in atividades %}<td class="num {{ 'zero' if not vals[a.chave] }}">{{ vals[a.chave] }}</td>{% endfor %}<td class="num"><strong>{{ vals.values()|sum }}</strong></td></tr>
         {% endfor %}
       </tbody>
-      <tfoot><tr><td>Ano</td>{% for a in C.ATIVIDADES %}<td class="num">{{ totais[a.chave] }}</td>{% endfor %}<td class="num">{{ total }}</td></tr></tfoot>
+      <tfoot><tr><td>Ano</td>{% for a in atividades %}<td class="num">{{ totais[a.chave] }}</td>{% endfor %}<td class="num">{{ total }}</td></tr></tfoot>
     </table>
   </div>
 </section>
