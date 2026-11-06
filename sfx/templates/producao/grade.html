@@ -115,13 +115,13 @@
       <table class="livro">
         <thead>
           <tr>
-            <th>Linha</th>
-            <th>Situação</th>
-            <th>Nº do processo</th>
-            <th>Nome do segurado</th>
+            <th class="th-margem">Linha</th>
+            <th class="col-status">Situação</th>
+            <th class="col-proc">Nº do processo</th>
+            <th class="col-nome">Nome do segurado</th>
             {% for a in C.ATIVIDADES %}<th class="atv" title="{{ a.rotulo }}"><span>{{ a.curto }}</span></th>{% endfor %}
-            <th>Setor</th>
-            <th>Observações</th>
+            <th class="col-setor">Setor</th>
+            <th class="col-obs">Observações</th>
             <th class="col-acao"><span class="sr-only">Remover</span></th>
           </tr>
         </thead>
