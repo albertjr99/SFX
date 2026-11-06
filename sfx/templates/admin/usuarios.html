@@ -10,11 +10,14 @@
 <div class="campo"><label for="{{ prefixo }}modalidade">Modalidade (analistas)</label>
   <select id="{{ prefixo }}modalidade" name="modalidade"><option value="">—</option>{% for k, v in modalidades.items() %}<option value="{{ k }}" {% if u and u.modalidade == k %}selected{% endif %}>{{ v }}</option>{% endfor %}</select></div>
 <label class="check-linha" style="padding-bottom:9px"><input type="checkbox" name="pode_plano_acao" value="1" {% if u and u.pode_plano_acao %}checked{% endif %}> Acessa o plano de ação</label>
+{% if current_user.eh_admin %}
+<label class="check-linha" style="padding-bottom:9px" title="Acesso total: gestão, produção de todos, plano de ação e usuários (inclusive administradores)"><input type="checkbox" name="administrador" value="1" {% if u and u.administrador %}checked{% endif %}> Administrador do sistema</label>
+{% endif %}
 {%- endmacro %}
 
 {% block content %}
 <div class="cabecalho">
-  <div><h1>Usuários</h1><p>Cadastre a equipe, redefina senhas e desative acessos sem perder o histórico.</p></div>
+  <div><h1>Usuários</h1><p>Cadastre a equipe, redefina senhas e desative acessos sem perder o histórico.{% if current_user.eh_admin %} Como administrador, você também concede acesso de administrador e exclui acessos sem produção registrada.{% endif %}</p></div>
   <div class="cabecalho-acoes"><button type="button" class="btn btn-primario" data-alternar="form-novo">{{ icone('mais') }}Novo usuário</button></div>
 </div>
 
@@ -43,7 +46,7 @@
       <tbody>
         {% for u in usuarios %}
         <tr {% if not u.ativo %}style="opacity:.6"{% endif %}>
-          <td><strong>{{ u.nome }}</strong>{% if u.pode_plano_acao %} <span class="etiqueta">plano de ação</span>{% endif %}</td>
+          <td><strong>{{ u.nome }}</strong>{% if u.eh_admin %} <span class="etiqueta etiqueta-alerta">administrador</span>{% endif %}{% if u.pode_plano_acao %} <span class="etiqueta">plano de ação</span>{% endif %}</td>
           <td>{{ u.perfil_rotulo }}{% if u.modalidade %}<br><span class="dica">{{ modalidades.get(u.modalidade, u.modalidade) }}</span>{% endif %}</td>
           <td>{{ u.email }}</td>
           <td>
@@ -52,10 +55,15 @@
             {% else %}<span class="etiqueta etiqueta-ok">Ativo</span>{% endif %}
           </td>
           <td style="white-space:nowrap">
-            {% if u.tipo != 'admin' or current_user.tipo == 'admin' %}
-            <details class="editar">
-              <summary>Editar</summary>
-              <div style="padding:12px 0;display:flex;flex-direction:column;gap:12px;min-width:min(760px,80vw)">
+            {% if not u.eh_admin or current_user.eh_admin %}
+            <button type="button" class="btn btn-pequeno btn-discreto" data-alternar="editar-{{ u.id }}" aria-controls="editar-{{ u.id }}">Editar</button>
+            {% endif %}
+          </td>
+        </tr>
+        {% if not u.eh_admin or current_user.eh_admin %}
+        <tr class="linha-edicao" id="editar-{{ u.id }}" hidden>
+          <td colspan="5">
+              <div style="padding:4px 0 8px;display:flex;flex-direction:column;gap:12px">
                 <form method="post" action="{{ url_for('admin.editar', usuario_id=u.id) }}" class="linha-form">
                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                   {{ campos_usuario(u, 'u' ~ u.id ~ '-') }}
@@ -71,13 +79,22 @@
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="acao" value="alternar_ativo">
                     <button type="submit" class="btn {{ 'btn-perigo' if u.ativo }}">{{ 'Desativar acesso' if u.ativo else 'Reativar acesso' }}</button>
                   </form>
+                  {% if current_user.eh_admin %}
+                    {% if registros.get(u.id) %}
+                    <span class="dica">{{ registros[u.id] }} registro(s) de produção: para preservar o histórico, desative em vez de excluir.</span>
+                    {% else %}
+                    <form method="post" action="{{ url_for('admin.editar', usuario_id=u.id) }}" data-confirmar="Excluir definitivamente o acesso de {{ u.nome }}? Esta ação não pode ser desfeita.">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="acao" value="excluir">
+                      <button type="submit" class="btn btn-perigo">Excluir acesso</button>
+                    </form>
+                    {% endif %}
+                  {% endif %}
                   {% endif %}
                 </div>
               </div>
-            </details>
-            {% endif %}
           </td>
         </tr>
+        {% endif %}
         {% endfor %}
       </tbody>
     </table>

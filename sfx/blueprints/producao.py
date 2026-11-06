@@ -143,12 +143,17 @@ def estatisticas():
 @bp.route("/pendencias", methods=["GET", "POST"])
 @login_required
 def pendencias():
-    if current_user.eh_analista:
+    analista_id = request.args.get("analista_id", type=int)
+    if current_user.edita_equipe and analista_id and analista_id != current_user.id:
+        alvo = db.session.get(Usuario, analista_id)
+        if alvo is None or not alvo.eh_analista:
+            abort(404)
+        pode_editar = current_user.eh_admin  # administrador também altera pendências alheias
+    elif current_user.eh_analista and not request.args.get("equipe"):
         alvo = current_user
         pode_editar = True
     elif current_user.edita_equipe:
-        analista_id = request.args.get("analista_id", type=int)
-        alvo = db.session.get(Usuario, analista_id) if analista_id else None
+        alvo = None
         pode_editar = False
     else:
         abort(403)
@@ -174,7 +179,8 @@ def pendencias():
         abertas=grupos.get("abertas", []),
         removidas=grupos.get("removidas", []),
         pode_editar=pode_editar,
-        analistas=analistas_ativos() if not pode_editar else [],
+        analistas=analistas_ativos() if current_user.edita_equipe else [],
+        proprio=alvo is not None and alvo.id == current_user.id,
         status_pendentes=[STATUS_POR_CHAVE[s] for s in STATUS_PENDENTES],
         semanas_ano=svc.semanas_por_mes_do_ano(hoje.ano),
         hoje=hoje,
@@ -183,6 +189,7 @@ def pendencias():
 
 def _acao_pendencia(alvo: Usuario):
     acao = request.form.get("acao")
+    volta = url_for("producao.pendencias", **({"analista_id": alvo.id} if alvo.id != current_user.id else {}))
     if acao == "adicionar":
         mes = request.form.get("mes", "")
         ano = request.form.get("ano", type=int)
@@ -198,7 +205,7 @@ def _acao_pendencia(alvo: Usuario):
             or not numero
         ):
             flash("Preencha mês, semana, número do processo e status.", "erro")
-            return redirect(url_for("producao.pendencias"))
+            return redirect(volta)
         ultimo = (
             db.session.query(db.func.max(LinhaProducao.indice_linha))
             .filter_by(usuario_id=alvo.id, ano=ano, mes=mes, semana=semana)
@@ -220,7 +227,7 @@ def _acao_pendencia(alvo: Usuario):
         )
         db.session.commit()
         flash("Pendência adicionada. Ela também aparece na grade da semana.", "sucesso")
-        return redirect(url_for("producao.pendencias"))
+        return redirect(volta)
 
     linha = db.session.get(LinhaProducao, request.form.get("linha_id", type=int) or 0)
     if linha is None or linha.usuario_id != alvo.id:
@@ -236,7 +243,7 @@ def _acao_pendencia(alvo: Usuario):
         abort(400)
     linha.atualizado_por_id = current_user.id
     db.session.commit()
-    return redirect(url_for("producao.pendencias") + f"#pendencia-{linha.id}")
+    return redirect(volta + f"#pendencia-{linha.id}")
 
 
 # ---------------------------------------------------------------------------
@@ -246,16 +253,16 @@ def _acao_pendencia(alvo: Usuario):
 @login_required
 def api_busca():
     termo = request.args.get("q", "")
-    if current_user.eh_analista:
-        linhas = svc.buscar(termo, usuario_id=current_user.id)
-    elif current_user.edita_equipe:
+    if current_user.edita_equipe:
         linhas = svc.buscar(termo)
+    elif current_user.eh_analista:
+        linhas = svc.buscar(termo, usuario_id=current_user.id)
     else:
         abort(403)
 
     def link(l: LinhaProducao) -> str:
         args = {"ano": l.ano, "mes": mes_numero(l.mes) if l.mes in MESES else None}
-        if current_user.eh_analista:
+        if l.usuario_id == current_user.id and current_user.eh_analista:
             return url_for("producao.minha_producao", **args) + f"#linha-{l.id}"
         return url_for("producao.equipe", analista_id=l.usuario_id, **args) + f"#linha-{l.id}"
 

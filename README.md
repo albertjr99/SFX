@@ -13,7 +13,7 @@ Sistema web da **Subgerência de Fixação (SFX)** para registrar, acompanhar e 
 | **Analista** | Lançar a produção da semana numa grade única (situação, nº do processo, segurado, 9 atividades, setor, observações e checklist de 18 documentos); acompanhar pendências e registrar como foram resolvidas; ver os próprios números por semana, mês ou ano. |
 | **Estagiária** | Lançar e corrigir a produção de qualquer analista; consultar pendências da equipe. |
 | **Subgerente, gerente, diretora** | Tudo o que a estagiária faz, mais o painel da equipe, a visão anual do setor, os números de cada analista, o plano de ação e o cadastro de usuários. |
-| **Administrador** | Igual à gestão, e também cria outros administradores. |
+| **Administrador** | Acesso total, somado ao perfil (o Lucas é analista **e** administrador): tudo da gestão, altera produção e pendências de qualquer analista, concede/retira acesso de administrador, exclui acessos sem produção registrada e exclui ciclos do plano de ação. O sistema impede que o último administrador seja removido ou desativado. |
 
 Destaques:
 
@@ -71,6 +71,7 @@ Abra <http://localhost:5000> e entre com `Marina` / `demo1234` (analista) ou `He
 flask --app wsgi usuarios listar
 flask --app wsgi usuarios criar --nome Ana --email ana@orgao.gov.br --tipo analista --modalidade presencial
 flask --app wsgi usuarios redefinir-senha Ana        # gera nova senha provisória
+flask --app wsgi usuarios admin Lucas                # concede acesso de administrador (--remover retira)
 flask --app wsgi plano importar caminho/Pasta2.xlsx  # importa a planilha antiga do plano de ação
 flask --app wsgi db upgrade                          # aplica migrações pendentes
 pytest                                               # testes
@@ -116,7 +117,7 @@ tests/                 pytest
 
 O sistema guarda nomes de segurados e números de processo. Por isso:
 
-- o banco em uso, backups e uploads não vão para o Git (`.gitignore`). A exceção é `dados_iniciais/`, publicada com autorização. As senhas iniciais desse banco foram trocadas por senhas provisórias aleatórias;
+- o banco em uso, backups e uploads não vão para o Git (`.gitignore`). A exceção é `dados_iniciais/`, publicada com autorização. Nesse banco todos começam com a senha provisória `1234`, com troca obrigatória no primeiro acesso — por isso cada pessoa deve entrar e trocar a senha assim que o sistema for publicado;
 - páginas são servidas com `Cache-Control: no-store`, CSP restritiva, proteção CSRF em todos os formulários e cookies `HttpOnly`/`SameSite`;
 - senhas com hash (Werkzeug), política mínima, troca obrigatória da senha provisória e bloqueio temporário após tentativas seguidas;
 - cada linha registra quem a alterou por último e quando.

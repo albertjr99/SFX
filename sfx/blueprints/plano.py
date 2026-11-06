@@ -48,6 +48,18 @@ def salvar(ano: int):
     return jsonify(ok=True, linhas=svc.serializar_ciclo(ciclo))
 
 
+@bp.post("/<int:ano>/excluir")
+@exige("eh_admin")
+def excluir(ano: int):
+    ciclo = db.session.get(PlanoAcaoCiclo, ano)
+    if ciclo is None:
+        abort(404)
+    db.session.delete(ciclo)
+    db.session.commit()
+    flash(f"Ciclo {ano} excluído.", "sucesso")
+    return redirect(url_for("plano.indice"))
+
+
 @bp.post("/novo")
 @exige("acessa_plano_acao")
 def novo():

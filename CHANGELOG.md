@@ -14,6 +14,9 @@ Reescrita completa sobre a mesma base de dados.
 - Comandos `flask usuarios`, `flask plano`, `flask demo`.
 - Testes automatizados (pytest), lint (ruff), CI no GitHub Actions, Dockerfile e docker-compose.
 
+### Administrador
+- Papel de administrador somado ao perfil (Lucas: analista + administrador): acesso total, gestão de administradores, exclusão de acessos sem produção e de ciclos do plano de ação, com proteção contra ficar sem administrador.
+
 ### Segurança
 - `SECRET_KEY` por variável de ambiente, CSRF, CSP, cookies seguros, `Cache-Control: no-store`, limite de tentativas de login, logout por POST, proteção contra redirecionamento aberto, autorização por perfil em todas as rotas.
 

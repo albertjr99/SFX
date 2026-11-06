@@ -28,7 +28,9 @@ O script mostra estes passos no final, já com os caminhos certos:
 5. Ative **Force HTTPS** e clique em **Reload**.
 
 ## 4. Primeiro acesso da equipe
-Cada pessoa entra com o nome e a **senha provisória** que a gerência entregou. O sistema obriga a criar uma senha pessoal.
+Todos começam com a senha provisória **`1234`**. Cada pessoa entra com o próprio nome e o sistema obriga a criar uma senha pessoal.
+**Peça que todos entrem e troquem a senha logo após publicar** — até lá, quem souber o nome e a senha provisória consegue entrar. O Lucas (administrador) deve ser o primeiro.
+Na tela **Usuários**, a etiqueta *Senha provisória* mostra quem ainda não trocou.
 Para gerar uma nova senha provisória: tela **Usuários** (perfis de gestão) ou, no console:
 
 ```bash

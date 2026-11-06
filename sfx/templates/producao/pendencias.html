@@ -40,15 +40,15 @@
 {% block content %}
 <div class="cabecalho">
   <div>
-    <h1>{{ 'Pendências' if pode_editar else 'Pendências da equipe' }}</h1>
+    <h1>{{ 'Minhas pendências' if proprio else ('Pendências de ' ~ alvo.nome if alvo else 'Pendências da equipe') }}</h1>
     <p>Processos tramitados, aguardando orientação ou que precisam de acompanhamento depois do envio.</p>
   </div>
   <div class="cabecalho-acoes nao-imprimir">
     {% if analistas %}
     <form method="get">
       <select name="analista_id" data-auto-enviar aria-label="Analista" style="width:auto">
-        <option value="">Escolha um analista…</option>
-        {% for a in analistas %}<option value="{{ a.id }}" {% if alvo and a.id == alvo.id %}selected{% endif %}>{{ a.nome }}</option>{% endfor %}
+        <option value="">{{ 'Minhas pendências' if current_user.eh_analista else 'Escolha um analista…' }}</option>
+        {% for a in analistas if a.id != current_user.id %}<option value="{{ a.id }}" {% if alvo and a.id == alvo.id %}selected{% endif %}>{{ a.nome }}</option>{% endfor %}
       </select>
     </form>
     {% endif %}
@@ -82,7 +82,7 @@
   <div class="painel vazio-bloco"><h2>Escolha um analista</h2><p>As pendências aparecem aqui assim que você selecionar alguém da equipe.</p></div>
 {% else %}
   <section class="painel">
-    <div class="painel-titulo"><h2>Em aberto</h2><small>{{ abertas|length }} processo(s){% if not pode_editar %} · {{ alvo.nome }}{% endif %}</small></div>
+    <div class="painel-titulo"><h2>Em aberto</h2><small>{{ abertas|length }} processo(s){% if not proprio %} · {{ alvo.nome }}{% endif %}</small></div>
     {% for p in abertas %}{{ cartao(p) }}{% else %}
       <div class="vazio-bloco" style="padding:28px"><p style="margin:0">Nenhuma pendência em aberto. Processos marcados como tramitado, aguardando ou acompanhar na grade aparecem aqui.</p></div>
     {% endfor %}

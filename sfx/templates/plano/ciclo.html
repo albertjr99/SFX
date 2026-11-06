@@ -20,6 +20,12 @@
       </form>
     </details>
     <button type="button" class="btn" data-imprimir-pagina>{{ icone('imprimir') }}Imprimir</button>
+    {% if current_user.eh_admin %}
+    <form method="post" action="{{ url_for('plano.excluir', ano=ciclo.ano) }}" data-confirmar="Excluir todo o ciclo {{ ciclo.ano }} do plano de ação? Esta ação não pode ser desfeita.">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn btn-perigo">Excluir ciclo</button>
+    </form>
+    {% endif %}
     <span class="estado-salvo" data-estado aria-live="polite">Tudo salvo</span>
     <button type="button" class="btn btn-primario" data-salvar-plano data-url="{{ url_for('plano.salvar', ano=ciclo.ano) }}">{{ icone('salvar') }}Salvar</button>
   </div>

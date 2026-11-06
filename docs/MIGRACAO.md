@@ -38,7 +38,7 @@ Para desfazer: `flask --app wsgi db downgrade ecf042e679b9` (os dados do plano d
 
 ## Mudanças para os usuários
 
-- **Primeiro acesso**: na v1 qualquer pessoa que soubesse o nome de um colega podia definir a senha dele. Agora o primeiro acesso usa a **senha provisória** (num banco antigo atualizado no próprio computador, as senhas iniciais da v1 continuam valendo como provisórias; no banco de `dados_iniciais/` elas foram trocadas por senhas aleatórias, entregues à gerência) e o sistema obriga a criar uma senha pessoal de pelo menos 8 caracteres com letras e números. A gestão gera novas senhas provisórias em **Usuários**.
+- **Primeiro acesso**: na v1 qualquer pessoa que soubesse o nome de um colega podia definir a senha dele. Agora o primeiro acesso usa a **senha provisória** (num banco antigo atualizado no próprio computador, as senhas iniciais da v1 continuam valendo como provisórias; no banco de `dados_iniciais/` todos começam com `1234`) e o sistema obriga a criar uma senha pessoal de pelo menos 8 caracteres com letras e números. A gestão gera novas senhas provisórias em **Usuários**.
 - **Login** aceita nome ou e-mail.
 - **Todos os meses** do ano ficam disponíveis (a v1 ia só de junho a dezembro), com navegação entre anos.
 - **Linhas vazias não são mais gravadas**: a grade continua mostrando 15 linhas por semana, mas só o que tem conteúdo vai para o banco.

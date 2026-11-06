@@ -86,7 +86,8 @@ def usuarios_listar():
     for u in Usuario.query.order_by(Usuario.tipo, Usuario.nome):
         situacao = "ativo" if u.ativo else "inativo"
         troca = " (senha provisória)" if u.precisa_trocar_senha else ""
-        click.echo(f"{u.id:>4}  {u.nome:<20} {u.tipo:<11} {u.modalidade or '-':<12} {situacao}{troca}")
+        admin = " [administrador]" if u.eh_admin else ""
+        click.echo(f"{u.id:>4}  {u.nome:<20} {u.tipo:<11} {u.modalidade or '-':<12} {situacao}{troca}{admin}")
 
 
 @usuarios.command("criar")
@@ -95,19 +96,39 @@ def usuarios_listar():
 @click.option("--tipo", type=click.Choice(list(PERFIS)), required=True)
 @click.option("--modalidade", type=click.Choice(list(MODALIDADES)), default=None)
 @click.option("--plano-acao", is_flag=True, help="Libera o acompanhamento do plano de ação.")
-def usuarios_criar(nome, email, tipo, modalidade, plano_acao):
+@click.option("--admin", "administrador", is_flag=True, help="Também administrador do sistema (acesso total).")
+def usuarios_criar(nome, email, tipo, modalidade, plano_acao, administrador):
     if Usuario.query.filter(func.lower(Usuario.nome) == nome.lower()).first():
         raise click.ClickException(f"Já existe usuário com o nome {nome!r}.")
     if tipo == PERFIL_ANALISTA and not modalidade:
         raise click.ClickException("Analistas precisam de --modalidade.")
     senha = senha_provisoria()
     u = Usuario(
-        nome=nome, email=email.lower(), tipo=tipo, modalidade=modalidade or "", ativo=True, pode_plano_acao=plano_acao
+        nome=nome,
+        email=email.lower(),
+        tipo=tipo,
+        modalidade=modalidade or "",
+        ativo=True,
+        pode_plano_acao=plano_acao,
+        administrador=administrador,
     )
     u.definir_senha(senha, provisoria=True)
     db.session.add(u)
     db.session.commit()
     click.echo(f"Usuário {nome} criado. Senha provisória: {senha}")
+
+
+@usuarios.command("admin")
+@click.argument("nome")
+@click.option("--remover", is_flag=True, help="Retira o acesso de administrador.")
+def usuarios_admin(nome, remover):
+    """Concede (ou retira, com --remover) o acesso de administrador."""
+    u = Usuario.query.filter(func.lower(Usuario.nome) == nome.lower()).first()
+    if not u:
+        raise click.ClickException(f"Usuário {nome!r} não encontrado.")
+    u.administrador = not remover
+    db.session.commit()
+    click.echo(f"{u.nome}: {'não é mais' if remover else 'agora é'} administrador do sistema.")
 
 
 @usuarios.command("redefinir-senha")

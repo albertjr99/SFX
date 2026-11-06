@@ -9,6 +9,7 @@ from .constants import (
     CAMPOS_TEXTO,
     CHAVES_ATIVIDADES,
     CHAVES_DOCUMENTOS,
+    PERFIL_ADMIN,
     PERFIL_ANALISTA,
     PERFIS,
     PERFIS_EDICAO_EQUIPE,
@@ -36,6 +37,8 @@ class Usuario(db.Model, UserMixin):
     primeiro_acesso_realizado = db.Column(db.Boolean, default=False)
     ativo = db.Column(db.Boolean, nullable=False, default=True, server_default=db.true())
     pode_plano_acao = db.Column(db.Boolean, nullable=False, default=False, server_default=db.false())
+    # Acesso total ao sistema, somado ao perfil (ex.: analista que também administra).
+    administrador = db.Column(db.Boolean, nullable=False, default=False, server_default=db.false())
 
     linhas = db.relationship(
         "LinhaProducao",
@@ -66,12 +69,17 @@ class Usuario(db.Model, UserMixin):
         return self.tipo == PERFIL_ANALISTA
 
     @property
+    def eh_admin(self) -> bool:
+        """Acesso total: gestão, equipe, plano de ação e cadastro de administradores."""
+        return bool(self.administrador) or self.tipo == PERFIL_ADMIN
+
+    @property
     def eh_gestor(self) -> bool:
-        return self.tipo in PERFIS_GESTAO
+        return self.tipo in PERFIS_GESTAO or self.eh_admin
 
     @property
     def edita_equipe(self) -> bool:
-        return self.tipo in PERFIS_EDICAO_EQUIPE
+        return self.tipo in PERFIS_EDICAO_EQUIPE or self.eh_admin
 
     @property
     def acessa_plano_acao(self) -> bool:
@@ -80,6 +88,13 @@ class Usuario(db.Model, UserMixin):
     @property
     def perfil_rotulo(self) -> str:
         return PERFIS.get(self.tipo, self.tipo.title())
+
+    @property
+    def papel_rotulo(self) -> str:
+        """Perfil + administrador, ex.: "Analista · Administrador"."""
+        if self.administrador and self.tipo != PERFIL_ADMIN:
+            return f"{self.perfil_rotulo} · Administrador"
+        return self.perfil_rotulo
 
     @property
     def iniciais(self) -> str:

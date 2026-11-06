@@ -28,7 +28,7 @@
     <nav class="nav" aria-label="Principal">
       {% if current_user.eh_analista %}
         <a href="{{ url_for('producao.minha_producao') }}" {% if ep == 'producao.minha_producao' %}aria-current="page"{% endif %}>{{ icone('grade') }}Minha produção</a>
-        <a href="{{ url_for('producao.pendencias') }}" {% if ep == 'producao.pendencias' %}aria-current="page"{% endif %}>{{ icone('alerta') }}Pendências</a>
+        <a href="{{ url_for('producao.pendencias') }}" {% if ep == 'producao.pendencias' and not request.args.get('analista_id') and not request.args.get('equipe') %}aria-current="page"{% endif %}>{{ icone('alerta') }}Pendências</a>
         <a href="{{ url_for('producao.estatisticas') }}" {% if ep == 'producao.estatisticas' %}aria-current="page"{% endif %}>{{ icone('grafico') }}Meus números</a>
       {% endif %}
 
@@ -41,7 +41,7 @@
       {% if current_user.edita_equipe %}
         {% if current_user.eh_gestor %}{% else %}<span class="nav-grupo">Equipe</span>{% endif %}
         <a href="{{ url_for('producao.equipe') }}" {% if ep == 'producao.equipe' %}aria-current="page"{% endif %}>{{ icone('equipe') }}Produção da equipe</a>
-        <a href="{{ url_for('producao.pendencias') }}" {% if ep == 'producao.pendencias' and not current_user.eh_analista %}aria-current="page"{% endif %}>{{ icone('alerta') }}Pendências da equipe</a>
+        <a href="{{ url_for('producao.pendencias', equipe=1) }}" {% if ep == 'producao.pendencias' and (not current_user.eh_analista or request.args.get('analista_id') or request.args.get('equipe')) %}aria-current="page"{% endif %}>{{ icone('alerta') }}Pendências da equipe</a>
       {% endif %}
 
       {% if current_user.acessa_plano_acao %}
@@ -57,7 +57,7 @@
     <div class="lateral-rodape">
       <div class="perfil">
         <span class="avatar" aria-hidden="true">{{ current_user.iniciais }}</span>
-        <span class="perfil-nome">{{ current_user.nome }}<small>{{ current_user.perfil_rotulo }}{% if current_user.modalidade %} · {{ C.MODALIDADES.get(current_user.modalidade, current_user.modalidade) }}{% endif %}</small></span>
+        <span class="perfil-nome">{{ current_user.nome }}<small>{{ current_user.papel_rotulo }}{% if current_user.modalidade %} · {{ C.MODALIDADES.get(current_user.modalidade, current_user.modalidade) }}{% endif %}</small></span>
       </div>
       <div class="lateral-acoes">
         <a href="{{ url_for('auth.trocar_senha') }}">Senha</a>
