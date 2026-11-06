@@ -40,7 +40,7 @@
 
       {% if current_user.edita_equipe %}
         {% if current_user.eh_gestor %}{% else %}<span class="nav-grupo">Equipe</span>{% endif %}
-        <a href="{{ url_for('producao.equipe') }}" {% if ep == 'producao.equipe' %}aria-current="page"{% endif %}>{{ icone('equipe') }}Editar produção da equipe</a>
+        <a href="{{ url_for('producao.equipe') }}" {% if ep == 'producao.equipe' %}aria-current="page"{% endif %}>{{ icone('equipe') }}Produção da equipe</a>
         <a href="{{ url_for('producao.pendencias') }}" {% if ep == 'producao.pendencias' and not current_user.eh_analista %}aria-current="page"{% endif %}>{{ icone('alerta') }}Pendências da equipe</a>
       {% endif %}
 
@@ -73,7 +73,7 @@
   <main class="conteudo" id="conteudo">
     {% include 'partials/_avisos.html' %}
     {% block content %}{% endblock %}
-    <footer class="rodape nao-imprimir">{{ config_sfx.sigla }} · {{ config_sfx.instituicao }} · versão {{ versao }}</footer>
+    <footer class="rodape nao-imprimir">{{ config_sfx.sigla }} · {{ config_sfx.instituicao }} · versão {{ versao }} · hoje é {{ hoje_br }} (horário de Brasília)</footer>
   </main>
 </div>
 {% else %}

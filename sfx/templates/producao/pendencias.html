@@ -9,7 +9,7 @@
     <div class="pendencia-meta">
       {{ selo_status(p.status) }}
       <span>Semana de {{ p.semana }} · {{ p.mes }}/{{ p.ano }}</span>
-      <span>Registrado em {{ p.data_registro|data_local('%d/%m/%Y') }}</span>
+      <span>Registrado em {{ p.data_registro|data_br }}</span>
       {% if p.setor %}<span>Setor: {{ p.setor }}</span>{% endif %}
     </div>
     {% if p.observacoes %}<p class="dica" style="margin:6px 0 0">{{ p.observacoes }}</p>{% endif %}

@@ -90,7 +90,7 @@ sfx/
   cli.py               comandos flask (usuarios, plano, demo)
   services/            regras de negócio (períodos, grade/estatísticas, plano de ação)
   blueprints/          rotas: auth, producao, gestao, plano, admin, legado
-  templates/  static/  interface (CSS e JS próprios, fontes e Chart.js locais)
+  templates/  static/  interface (CSS e JS próprios, fonte Inter e Chart.js locais)
 migrations/            Alembic (inclui as migrações da v1)
 tests/                 pytest
 ```
@@ -103,5 +103,7 @@ O sistema guarda nomes de segurados e números de processo. Por isso:
 - páginas são servidas com `Cache-Control: no-store`, CSP restritiva, proteção CSRF em todos os formulários e cookies `HttpOnly`/`SameSite`;
 - senhas com hash (Werkzeug), política mínima, troca obrigatória da senha provisória e bloqueio temporário após tentativas seguidas;
 - cada linha registra quem a alterou por último e quando.
+
+Datas e horas aparecem sempre no horário de Brasília (`America/Sao_Paulo`) e no formato dd/mm/aaaa, mesmo que o servidor esteja em outro fuso; no banco os instantes ficam em UTC.
 
 Faça backup periódico de `instance/producao.db` (ou do banco configurado).

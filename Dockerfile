@@ -3,7 +3,8 @@ FROM python:3.13-slim
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
-    SFX_ENV=production
+    SFX_ENV=production \
+    TZ=America/Sao_Paulo
 
 WORKDIR /app
 RUN useradd --create-home --uid 1000 sfx

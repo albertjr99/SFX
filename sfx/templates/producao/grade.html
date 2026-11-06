@@ -7,7 +7,7 @@
 <tr class="linha{% if p %} tem-conteudo{% endif %}" data-uid="{{ uid }}" {% if p %}id="linha-{{ p.id }}"{% endif %}>
   <td class="margem">
     <input type="hidden" name="s{{ w }}_linha" value="{{ uid }}">
-    <span class="numero">{{ '%02d'|format(numero) }}</span>
+    <span class="numero"{% if p and p.atualizado_em %} title="Última alteração: {{ p.atualizado_em|data_hora_br }}{% if p.atualizado_por %} por {{ p.atualizado_por.nome }}{% endif %}"{% endif %}>{{ '%02d'|format(numero) }}</span>
     <button type="button" data-docs aria-expanded="false" title="Conferência documental">Docs<span class="docs-cont">{% if p and p.documentos_conferidos %} {{ p.documentos_conferidos }}{% endif %}</span></button>
   </td>
   <td class="col-status">
@@ -78,7 +78,7 @@
     </nav>
     <div class="busca nao-imprimir" data-busca data-url="{{ url_for('producao.api_busca') }}">
       {{ icone('busca') }}
-      <input type="search" placeholder="Buscar processo ou segurado" aria-label="Buscar processo ou segurado em todos os meses">
+      <input type="search" placeholder="Buscar processo ou nome" aria-label="Buscar processo ou segurado em todos os meses">
       <div class="busca-resultados" hidden></div>
     </div>
     <details class="nao-imprimir" style="position:relative">

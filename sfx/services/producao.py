@@ -6,6 +6,7 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 
 from sqlalchemy import case, func, or_
+from sqlalchemy.orm import joinedload
 
 from ..constants import (
     CAMPOS_TEXTO,
@@ -29,6 +30,7 @@ LIMITES_TEXTO = {"numero_processo": 100, "nome_do_segurado": 100, "setor": 100, 
 def linhas_do_mes(usuario_id: int, periodo: Periodo) -> list[LinhaProducao]:
     return (
         LinhaProducao.query.filter_by(usuario_id=usuario_id, ano=periodo.ano, mes=periodo.nome_mes)
+        .options(joinedload(LinhaProducao.atualizado_por))
         .order_by(LinhaProducao.indice_linha.asc().nulls_last(), LinhaProducao.id.asc())
         .all()
     )

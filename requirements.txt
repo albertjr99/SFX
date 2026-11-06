@@ -8,6 +8,6 @@ SQLAlchemy>=2.0,<2.1
 alembic>=1.16
 openpyxl>=3.1,<4
 python-dotenv>=1.0
-tzdata>=2024.1 ; sys_platform == "win32"
+tzdata>=2024.1  # base de fusos (America/Sao_Paulo) em qualquer sistema
 gunicorn>=23 ; sys_platform != "win32"
 waitress>=3.0 ; sys_platform == "win32"

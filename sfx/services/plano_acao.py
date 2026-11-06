@@ -10,6 +10,7 @@ from __future__ import annotations
 from datetime import date, datetime
 from pathlib import Path
 
+from .. import tempo
 from ..constants import MESES
 from ..extensions import db
 from ..models import PlanoAcaoCiclo, PlanoAcaoMes
@@ -109,7 +110,7 @@ def salvar_ciclo(ciclo: PlanoAcaoCiclo, dados: dict) -> None:
             continue
         for c in PlanoAcaoMes.CAIXAS:
             setattr(mes, c, _inteiro(item.get(c)))
-        mes.data_extracao = (str(item.get("data_extracao") or "")).strip()[:20]
+        mes.data_extracao = tempo.normalizar_data_br(str(item.get("data_extracao") or ""))[:20]
         mes.observacoes = (str(item.get("observacoes") or "")).strip()[:8000]
     if "nota" in dados:
         ciclo.nota = (str(dados.get("nota") or "")).strip()[:8000]
@@ -118,14 +119,8 @@ def salvar_ciclo(ciclo: PlanoAcaoCiclo, dados: dict) -> None:
 
 def _data_texto(valor) -> str:
     if isinstance(valor, (datetime, date)):
-        return valor.strftime("%d/%m/%Y")
-    if valor is None:
-        return ""
-    texto = str(valor).strip()
-    try:
-        return datetime.fromisoformat(texto.split()[0]).strftime("%d/%m/%Y")
-    except ValueError:
-        return texto
+        return valor.strftime(tempo.FORMATO_DATA)
+    return tempo.normalizar_data_br(None if valor is None else str(valor))
 
 
 def importar_planilha(caminho: str | Path, aba: str = ABA_PADRAO, substituir: bool = False) -> list[int]:

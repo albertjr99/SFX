@@ -4,13 +4,11 @@ from __future__ import annotations
 
 import logging
 import os
-from datetime import UTC, datetime
-from zoneinfo import ZoneInfo
 
 from flask import Flask, jsonify, redirect, render_template, request, url_for
 from flask_login import current_user
 
-from . import constants
+from . import constants, tempo
 from .config import CONFIGS
 from .extensions import csrf, db, login_manager, migrate
 
@@ -134,15 +132,15 @@ def _registrar_erros(app: Flask) -> None:
 
 
 def _registrar_template_helpers(app: Flask) -> None:
-    fuso = ZoneInfo(app.config["SFX_FUSO"])
+    @app.template_filter("data_br")
+    def data_br(valor) -> str:
+        """dd/mm/aaaa no fuso de São Paulo."""
+        return tempo.formatar(valor)
 
-    @app.template_filter("data_local")
-    def data_local(valor: datetime | None, formato: str = "%d/%m/%Y %H:%M") -> str:
-        if not valor:
-            return ""
-        if valor.tzinfo is None:
-            valor = valor.replace(tzinfo=UTC)
-        return valor.astimezone(fuso).strftime(formato)
+    @app.template_filter("data_hora_br")
+    def data_hora_br(valor) -> str:
+        """dd/mm/aaaa HH:MM no fuso de São Paulo."""
+        return tempo.formatar(valor, com_hora=True)
 
     @app.template_filter("numero")
     def numero(valor) -> str:
@@ -170,5 +168,6 @@ def _registrar_template_helpers(app: Flask) -> None:
                 "contatos": app.config["SFX_CONTATOS"],
             },
             "versao": __version__,
-            "ano_atual": datetime.now(fuso).year,
+            "ano_atual": tempo.hoje().year,
+            "hoje_br": tempo.formatar(tempo.hoje()),
         }

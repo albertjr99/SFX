@@ -6,6 +6,7 @@ import calendar
 from dataclasses import dataclass
 from datetime import date, timedelta
 
+from .. import tempo
 from ..constants import MESES
 
 
@@ -39,7 +40,7 @@ def gerar_semanas(mes: int, ano: int) -> list[str]:
 
 
 def semana_atual(mes: int, ano: int, hoje: date | None = None) -> str | None:
-    hoje = hoje or date.today()
+    hoje = hoje or tempo.hoje()
     if (hoje.year, hoje.month) != (ano, mes):
         return None
     alvo = hoje
@@ -90,7 +91,7 @@ class Periodo:
 
     @classmethod
     def hoje(cls) -> Periodo:
-        h = date.today()
+        h = tempo.hoje()
         return cls(h.year, h.month)
 
     @classmethod

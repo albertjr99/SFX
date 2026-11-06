@@ -12,6 +12,7 @@ import click
 from flask import Flask
 from sqlalchemy import func
 
+from . import tempo
 from .constants import (
     CHAVES_ATIVIDADES,
     CHAVES_DOCUMENTOS,
@@ -178,7 +179,7 @@ def demo_popular(senha, meses, forcar):
         for u in (c for c in criados if c.tipo == PERFIL_ANALISTA):
             for semana in periodo.semanas:
                 inicio = date(periodo.ano, periodo.mes, int(semana[:2]))
-                if inicio > date.today():
+                if inicio > tempo.hoje():
                     continue
                 for i in range(rnd.randint(6, 14)):
                     linha = LinhaProducao(
@@ -200,10 +201,10 @@ def demo_popular(senha, meses, forcar):
         periodo = periodo.anterior
     db.session.commit()
 
-    if not db.session.get(PlanoAcaoCiclo, date.today().year):
-        ciclo = criar_ciclo(date.today().year)
+    if not db.session.get(PlanoAcaoCiclo, tempo.hoje().year):
+        ciclo = criar_ciclo(tempo.hoje().year)
         caixas = [60, 210, 140, 180]
-        for mes in ciclo.meses[: date.today().month]:
+        for mes in ciclo.meses[: tempo.hoje().month]:
             caixas = [max(0, c + rnd.randint(-25, 15)) for c in caixas]
             mes.caixa_pa, mes.caixa_in_p, mes.caixa_conferencia_p, mes.caixa_p_sem_pensao = caixas
             mes.data_extracao = f"05/{min(12, ciclo.meses.index(mes) + 1):02d}/{ciclo.ano}"

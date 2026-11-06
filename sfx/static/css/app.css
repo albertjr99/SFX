@@ -1,16 +1,14 @@
 /* ==========================================================================
    SFX — sistema visual
-   Tinta institucional + "marca-texto" amarelo, tipografia IBM Plex.
+   Tinta institucional + "marca-texto" amarelo, tipografia Inter.
    A grade de produção é tratada como um livro de registro: numeração na
    margem, semanas como cadernos e a semana corrente marcada a caneta.
    ========================================================================== */
 
-@font-face { font-family: "Plex"; src: url("../fonts/ibm-plex-sans-latin-400-normal.woff2") format("woff2"); font-weight: 400; font-display: swap; }
-@font-face { font-family: "Plex"; src: url("../fonts/ibm-plex-sans-latin-500-normal.woff2") format("woff2"); font-weight: 500; font-display: swap; }
-@font-face { font-family: "Plex"; src: url("../fonts/ibm-plex-sans-latin-600-normal.woff2") format("woff2"); font-weight: 600; font-display: swap; }
-@font-face { font-family: "Plex"; src: url("../fonts/ibm-plex-sans-latin-700-normal.woff2") format("woff2"); font-weight: 700; font-display: swap; }
-@font-face { font-family: "Plex Condensed"; src: url("../fonts/ibm-plex-sans-condensed-latin-500-normal.woff2") format("woff2"); font-weight: 500; font-display: swap; }
-@font-face { font-family: "Plex Condensed"; src: url("../fonts/ibm-plex-sans-condensed-latin-600-normal.woff2") format("woff2"); font-weight: 600; font-display: swap; }
+@font-face { font-family: "Inter"; src: url("../fonts/inter-latin-400-normal.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "Inter"; src: url("../fonts/inter-latin-500-normal.woff2") format("woff2"); font-weight: 500; font-display: swap; }
+@font-face { font-family: "Inter"; src: url("../fonts/inter-latin-600-normal.woff2") format("woff2"); font-weight: 600; font-display: swap; }
+@font-face { font-family: "Inter"; src: url("../fonts/inter-latin-700-normal.woff2") format("woff2"); font-weight: 700; font-display: swap; }
 
 :root {
   --tinta: #17324d;
@@ -40,27 +38,30 @@
   --st-acompanhar: #e88fb1;
   --st-conferido: #45a079;
 
-  --fonte: "Plex", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --fonte-cond: "Plex Condensed", "Plex", "Arial Narrow", sans-serif;
+  --fonte: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --fonte-cond: var(--fonte);
 
   --r-1: 4px;
   --r-2: 8px;
   --sombra: 0 1px 2px rgba(23, 50, 77, .08), 0 2px 8px rgba(23, 50, 77, .06);
-  --lateral: 248px;
+  --lateral: 256px;
   color-scheme: light;
 }
 
 *, *::before, *::after { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
 body {
-  margin: 0; font-family: var(--fonte); font-size: 15px; line-height: 1.5;
+  margin: 0; font-family: var(--fonte); font-size: 14.5px; line-height: 1.5;
   color: var(--texto); background: var(--papel);
   font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum", "cv11";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 a { color: var(--pasta); text-underline-offset: 2px; }
 a:hover { color: var(--pasta-escura); }
 h1, h2, h3 { line-height: 1.2; margin: 0; }
-h1 { font-size: 1.6rem; font-weight: 600; letter-spacing: -.01em; }
+h1 { font-size: 1.6rem; font-weight: 600; letter-spacing: -.02em; }
 h2 { font-size: 1.15rem; font-weight: 600; }
 h3 { font-size: 1rem; font-weight: 600; }
 p { margin: 0 0 .75rem; }
@@ -79,7 +80,7 @@ p { margin: 0 0 .75rem; }
   width: 38px; height: 38px; border-radius: var(--r-1); background: var(--marca); color: var(--tinta);
   display: grid; place-items: center; font-family: var(--fonte-cond); font-weight: 600; font-size: 15px; letter-spacing: .02em;
 }
-.marca-nome { font-weight: 600; font-size: 14px; line-height: 1.2; }
+.marca-nome { font-weight: 600; font-size: 13px; line-height: 1.25; letter-spacing: -.01em; }
 .marca-nome small { display: block; color: var(--tinta-3); font-weight: 400; font-size: 12px; }
 
 .nav { display: flex; flex-direction: column; gap: 2px; margin-top: 4px; }
@@ -185,7 +186,7 @@ input[type=checkbox] { width: 17px; height: 17px; accent-color: var(--pasta); cu
 .tabela-envolta { position: relative; overflow-x: auto; }
 table.tabela { width: 100%; border-collapse: collapse; font-size: 14px; }
 .tabela th {
-  font-family: var(--fonte-cond); font-weight: 600; font-size: 13px; color: var(--texto-suave); text-align: left;
+  font-family: var(--fonte-cond); font-weight: 600; font-size: 12.5px; color: var(--texto-suave); text-align: left;
   padding: 10px 12px; border-bottom: 1px solid var(--linha-forte); background: var(--superficie-2); white-space: nowrap;
 }
 .tabela td { padding: 9px 12px; border-bottom: 1px solid var(--linha); vertical-align: top; }
@@ -242,7 +243,7 @@ table.tabela { width: 100%; border-collapse: collapse; font-size: 14px; }
 .livro-envolta { position: relative; overflow-x: auto; background: var(--superficie); border: 1px solid var(--linha); border-radius: var(--r-2); box-shadow: var(--sombra); }
 table.livro { border-collapse: separate; border-spacing: 0; width: 100%; min-width: 1320px; font-size: 13.5px; }
 .livro thead th {
-  font-family: var(--fonte-cond); font-weight: 600; font-size: 12.5px; color: var(--texto-suave);
+  font-family: var(--fonte-cond); font-weight: 600; font-size: 12px; letter-spacing: -.005em; color: var(--texto-suave);
   background: var(--superficie-2); border-bottom: 1px solid var(--linha-forte); padding: 8px 6px; text-align: center; line-height: 1.15;
 }
 .livro thead th.atv { width: 54px; }
@@ -262,12 +263,12 @@ table.livro { border-collapse: separate; border-spacing: 0; width: 100%; min-wid
 .livro input[type=text] { border-color: transparent; background: transparent; padding: 6px 6px; border-radius: 3px; }
 .livro input[type=text]:hover { border-color: var(--linha); }
 .livro input[type=text]:focus { background: #fff; border-color: var(--pasta); }
-.livro .col-proc { width: 150px; }
+.livro .col-proc { width: 172px; }
 .livro .col-nome { min-width: 200px; }
-.livro .col-setor { width: 140px; }
+.livro .col-setor { width: 150px; min-width: 150px; }
 .livro .col-obs { min-width: 200px; }
 .livro .col-status { width: 150px; }
-.livro .col-status select { width: 142px; }
+.livro .col-status select { width: 146px; }
 .livro .col-acao { width: 40px; text-align: center; }
 .btn-remover { border: 0; background: none; color: #a3afbb; cursor: pointer; padding: 4px 6px; border-radius: 3px; font-size: 16px; line-height: 1; }
 .btn-remover:hover { color: var(--erro); background: var(--erro-clara); }
@@ -290,7 +291,7 @@ tr.docs td { background: var(--superficie-2); padding: 10px 14px 14px 70px; }
 .caderno-pe { display: flex; gap: 8px; margin-top: 8px; }
 
 /* Busca */
-.busca { position: relative; min-width: 220px; }
+.busca { position: relative; min-width: 250px; }
 .busca input { padding-left: 34px; }
 .busca svg { position: absolute; left: 10px; top: 50%; translate: 0 -50%; width: 16px; height: 16px; color: var(--texto-suave); pointer-events: none; }
 .busca-resultados {
