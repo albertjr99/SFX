@@ -29,6 +29,15 @@ Destaques:
 | ![Painel da equipe](docs/img/painel.png) | ![Meus números](docs/img/estatisticas.png) |
 | ![Plano de ação](docs/img/plano.png) | ![Login](docs/img/login.png) |
 
+## Colocar no ar em 5 minutos (Windows, rede interna)
+
+1. Instale o [Python 3.11+](https://www.python.org/downloads/) marcando **Add python.exe to PATH**.
+2. Baixe este repositório (botão **Code → Download ZIP**) e extraia numa pasta fixa, ex.: `C:\SFX`.
+3. Se já usa a versão 1, copie a pasta `instance\` (banco) e `data\Pasta2.xlsx` para dentro dela.
+4. Clique duas vezes em **`INICIAR_SFX.bat`**.
+
+Na primeira vez ele cria o ambiente, gera a chave secreta, faz backup e atualiza o banco, importa o plano de ação e mostra o endereço para os colegas (ex.: `http://10.0.0.25:8000`). Nas próximas, só inicia. Deixe a janela aberta enquanto o sistema estiver em uso.
+
 ## Começando (desenvolvimento)
 
 Requer **Python 3.11+**.

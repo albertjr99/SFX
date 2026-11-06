@@ -8,21 +8,21 @@ import os
 from flask import Flask, jsonify, redirect, render_template, request, url_for
 from flask_login import current_user
 
-from . import constants, tempo
-from .config import CONFIGS
-from .extensions import csrf, db, login_manager, migrate
+try:  # .env precisa ser lido ANTES de sfx.config avaliar as variáveis de ambiente
+    from dotenv import load_dotenv
+
+    load_dotenv()
+except ImportError:  # pragma: no cover
+    pass
+
+from . import constants, tempo  # noqa: E402
+from .config import CONFIGS  # noqa: E402
+from .extensions import csrf, db, login_manager, migrate  # noqa: E402
 
 __version__ = "2.0.0"
 
 
 def create_app(config_name: str | None = None, **overrides) -> Flask:
-    try:
-        from dotenv import load_dotenv
-
-        load_dotenv()
-    except ImportError:  # pragma: no cover
-        pass
-
     config_name = config_name or os.environ.get("SFX_ENV") or os.environ.get("FLASK_ENV") or "production"
     app = Flask(__name__, instance_relative_config=True)
     app.config.from_object(CONFIGS.get(config_name, CONFIGS["production"]))
