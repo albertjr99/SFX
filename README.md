@@ -29,7 +29,15 @@ Destaques:
 | ![Painel da equipe](docs/img/painel.png) | ![Meus números](docs/img/estatisticas.png) |
 | ![Plano de ação](docs/img/plano.png) | ![Login](docs/img/login.png) |
 
-## Colocar no ar em 5 minutos (Windows, rede interna)
+## Colocar no ar
+
+- **Na internet, de graça:** [PythonAnywhere](docs/PYTHONANYWHERE.md). Um comando no console e 5 cliques no painel.
+- **Num computador da rede interna (Windows):** veja abaixo.
+- **Servidor próprio/TI:** `docker compose up -d --build`.
+
+O repositório traz `dados_iniciais/` (banco com a equipe e a planilha do plano de ação). Ele só é copiado quando ainda **não existe** banco; atualizações nunca sobrescrevem os dados em uso.
+
+### Rede interna (Windows) em 5 minutos
 
 1. Instale o [Python 3.11+](https://www.python.org/downloads/) marcando **Add python.exe to PATH**.
 2. Baixe este repositório (botão **Code → Download ZIP**) e extraia numa pasta fixa, ex.: `C:\SFX`.
@@ -72,11 +80,11 @@ ruff check . && ruff format --check .                # lint
 ## Produção
 
 1. Defina `SFX_ENV=production` e uma `SECRET_KEY` forte no `.env` (o sistema se recusa a subir sem ela).
-2. Rode `flask --app wsgi db upgrade`.
+2. Rode `flask --app wsgi sfx preparar` (copia o banco inicial se não houver, aplica migrações e importa o plano de ação).
 3. Suba o servidor:
    - **Linux**: `gunicorn wsgi:app --workers 2 --threads 4 --bind 0.0.0.0:8000`
    - **Windows**: `waitress-serve --listen=0.0.0.0:8000 wsgi:app`
-   - **Docker**: `docker compose up -d --build` (aplica as migrações sozinho; o banco fica no volume `sfx-dados`).
+   - **Docker**: `docker compose up -d --build` (prepara o banco sozinho; ele fica no volume `sfx-dados`).
 4. Sirva atrás de HTTPS. Se for usar HTTP puro na intranet, defina `SESSION_COOKIE_SECURE=false`; atrás de proxy reverso, `PROXY_FIX=true`.
 
 `GET /healthz` responde `{"status": "ok"}` para monitoramento.
@@ -108,7 +116,7 @@ tests/                 pytest
 
 O sistema guarda nomes de segurados e números de processo. Por isso:
 
-- banco, planilhas e uploads **nunca** vão para o Git (`.gitignore`);
+- o banco em uso, backups e uploads não vão para o Git (`.gitignore`). A exceção é `dados_iniciais/`, publicada com autorização. As senhas iniciais desse banco foram trocadas por senhas provisórias aleatórias;
 - páginas são servidas com `Cache-Control: no-store`, CSP restritiva, proteção CSRF em todos os formulários e cookies `HttpOnly`/`SameSite`;
 - senhas com hash (Werkzeug), política mínima, troca obrigatória da senha provisória e bloqueio temporário após tentativas seguidas;
 - cada linha registra quem a alterou por último e quando.

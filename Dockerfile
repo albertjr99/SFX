@@ -18,5 +18,5 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
   CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz', timeout=4)"
 
-# Aplica migrações pendentes e sobe o servidor
-CMD ["sh", "-c", "flask --app wsgi db upgrade && exec gunicorn wsgi:app --workers 2 --threads 4 --bind 0.0.0.0:8000 --access-logfile -"]
+# Copia o banco inicial (se ainda não houver), aplica migrações e sobe o servidor
+CMD ["sh", "-c", "flask --app wsgi sfx preparar && exec gunicorn wsgi:app --workers 2 --threads 4 --bind 0.0.0.0:${PORT:-8000} --access-logfile -"]

@@ -31,3 +31,8 @@ backups/
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# Exceção autorizada: dados iniciais (copiados só quando ainda não existe banco)
+!dados_iniciais/
+!dados_iniciais/producao.db
+!dados_iniciais/Pasta2.xlsx

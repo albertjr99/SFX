@@ -12,3 +12,4 @@ uploads
 tests
 docs
 .github
+!dados_iniciais

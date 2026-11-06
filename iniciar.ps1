@@ -50,12 +50,7 @@ if (Test-Path "instance\producao.db") {
     Copy-Item "instance\producao.db" $backup
     Write-Host "Backup salvo em $backup"
 }
-& $venvPy -m flask --app wsgi db upgrade
-
-# 5. Plano de acao (importa a planilha antiga uma unica vez, se existir)
-if (Test-Path "data\Pasta2.xlsx") {
-    & $venvPy -m flask --app wsgi plano importar "data\Pasta2.xlsx"
-}
+& $venvPy -m flask --app wsgi sfx preparar
 
 # 6. Endereco de acesso
 $ips = Get-NetIPAddress -AddressFamily IPv4 -ErrorAction SilentlyContinue |

@@ -6,7 +6,9 @@ Substituem os scripts avulsos da versão 1 (criar_usuario.py, resetar_banco.py�
 from __future__ import annotations
 
 import random
+import shutil
 from datetime import date
+from pathlib import Path
 
 import click
 from flask import Flask
@@ -29,9 +31,48 @@ from .services.plano_acao import criar_ciclo
 
 
 def registrar_comandos(app: Flask) -> None:
+    app.cli.add_command(sfx)
     app.cli.add_command(usuarios)
     app.cli.add_command(plano)
     app.cli.add_command(demo)
+
+
+# ---------------------------------------------------------------------------
+DADOS_INICIAIS = Path(__file__).resolve().parent.parent / "dados_iniciais"
+
+
+@click.group(help="Operação do sistema.")
+def sfx():
+    pass
+
+
+@sfx.command("preparar")
+def sfx_preparar():
+    """Deixa o banco pronto para uso (seguro para rodar a cada inicialização).
+
+    1. Se o banco SQLite ainda não existe e há ``dados_iniciais/producao.db``,
+       copia-o (nunca sobrescreve um banco existente);
+    2. aplica as migrações pendentes;
+    3. se não há plano de ação e existe ``dados_iniciais/Pasta2.xlsx``, importa.
+    """
+    from flask_migrate import upgrade
+
+    from .services.plano_acao import importar_planilha
+
+    url = db.engine.url
+    semente = DADOS_INICIAIS / "producao.db"
+    if url.get_backend_name() == "sqlite" and url.database and url.database != ":memory:":
+        destino = Path(url.database)
+        if not destino.exists() and semente.exists():
+            destino.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(semente, destino)
+            click.echo(f"Banco inicial copiado para {destino}.")
+    upgrade()
+    planilha = DADOS_INICIAIS / "Pasta2.xlsx"
+    if planilha.exists() and not PlanoAcaoCiclo.query.first():
+        anos = importar_planilha(planilha)
+        click.echo(f"Plano de ação importado: {', '.join(map(str, anos)) or 'nada'}.")
+    click.echo(f"Pronto. Usuários cadastrados: {Usuario.query.count()}.")
 
 
 # ---------------------------------------------------------------------------
